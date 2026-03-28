@@ -1307,6 +1307,14 @@ class Game {
     container.innerHTML = `
       <div class="pref-group"><div class="pref-label">${this._t('playerName') || 'Player Name'}</div>
         <input type="text" id="pref-name-input" class="name-edit" maxlength="12" value="${getPlayerName()}" style="width:100%;"></div>
+      <div class="pref-group"><div class="pref-label">${this._t('language') || 'Language'}</div>
+        <div class="skin-options" style="grid-template-columns:repeat(4,1fr);" id="pref-lang-options">
+          ${Object.entries(LOCALES).map(([code, loc]) => `
+            <div class="skin-option ${code === this._getLang() ? 'active' : ''}" data-lang="${code}">
+              <span style="font-size:1.2rem;">${loc.flag}</span><span>${loc.name}</span>
+            </div>
+          `).join('')}
+        </div></div>
       <div class="pref-group"><div class="pref-label">${this._t('theme')}</div>
         <div class="skin-options" style="grid-template-columns:repeat(2,1fr);">
           <div class="skin-option ${currentTheme==='dark'?'active':''}" data-theme-val="dark"><div class="skin-preview" style="background:linear-gradient(135deg,#1a4a7a,#0a2a4a);"></div><span>${this._t('darkTheme')}</span></div>
@@ -1364,6 +1372,20 @@ class Game {
         el.addEventListener('click', () => {
           this._gameSpeed = el.dataset.speed;
           localStorage.setItem('spades_speed', this._gameSpeed);
+          this._renderPrefs();
+        });
+      });
+    }
+    const langOpts = document.getElementById('pref-lang-options');
+    if (langOpts) {
+      langOpts.querySelectorAll('.skin-option').forEach(el => {
+        el.addEventListener('click', () => {
+          const lang = el.dataset.lang;
+          localStorage.setItem('spades_lang', lang);
+          PHRASES = _buildPhrases(lang);
+          this._previewNames = null;
+          this._applyLocale();
+          this._updateRoster();
           this._renderPrefs();
         });
       });
@@ -1440,13 +1462,77 @@ class Game {
   }
 
   _applyLocale() {
-    const u = getLocale(this._getLang()).ui || LOCALES.en.ui;
+    const lang = this._getLang();
+    const u = getLocale(lang).ui || LOCALES.en.ui;
     const setTxt = (sel, txt) => { const el = document.querySelector(sel); if (el) el.textContent = txt; };
-    setTxt('#menu-title', u.gameTitle || 'SPADES');
+
+    document.documentElement.dir = getLocale(lang).dir || 'ltr';
+    document.documentElement.lang = lang;
+
+    setTxt('#menu-title', u.gameTitle || 'SPADES 27');
     setTxt('#menu-subtitle', u.gameSubtitle || 'CARD GAME');
     setTxt('#start-game', u.startGame);
     setTxt('#rematch-btn', u.rematch);
     setTxt('#play-again', u.newGame);
+
+    // Menu labels
+    const labels = document.querySelectorAll('.option-group label');
+    const labelKeys = ['gameMode', 'playTo', 'aiDifficulty', 'gameSpeed'];
+    labels.forEach((lbl, i) => { if (labelKeys[i] && u[labelKeys[i]]) lbl.textContent = u[labelKeys[i]]; });
+
+    // Game mode buttons
+    const modeGroup = document.getElementById('game-mode');
+    if (modeGroup) {
+      const btns = modeGroup.querySelectorAll('.btn-option');
+      if (btns[0]) btns[0].textContent = u.partnership || '2v2 Teams';
+      if (btns[1]) btns[1].textContent = u.cutthroat || 'Cutthroat (FFA)';
+    }
+
+    // Difficulty buttons
+    const diffGroup = document.getElementById('ai-difficulty');
+    if (diffGroup) {
+      const btns = diffGroup.querySelectorAll('.btn-option');
+      if (btns[0]) btns[0].textContent = u.easy;
+      if (btns[1]) btns[1].textContent = u.mixed;
+      if (btns[2]) btns[2].textContent = u.hard;
+    }
+
+    // Speed buttons
+    const speedGroup = document.getElementById('game-speed');
+    if (speedGroup) {
+      const btns = speedGroup.querySelectorAll('.btn-option');
+      if (btns[0]) btns[0].textContent = u.fast;
+      if (btns[1]) btns[1].textContent = u.normal;
+      if (btns[2]) btns[2].textContent = u.slow;
+    }
+
+    // Score custom button
+    const scoreGroup = document.getElementById('target-score');
+    if (scoreGroup) {
+      const customBtn = scoreGroup.querySelector('[data-value="custom"]');
+      if (customBtn) customBtn.textContent = u.custom || 'Custom';
+    }
+
+    // Rules content
+    const rulesContent = document.querySelector('.rules-content');
+    if (rulesContent && RULES[lang]) rulesContent.innerHTML = RULES[lang];
+
+    // Menu language selector
+    const langSel = document.getElementById('menu-lang-selector');
+    if (langSel) {
+      langSel.innerHTML = Object.entries(LOCALES).map(([code, loc]) =>
+        `<button class="btn-option${code === lang ? ' active' : ''}" data-lang="${code}" style="flex:0;padding:8px 12px;min-width:auto;font-size:1.3rem;">${loc.flag}</button>`
+      ).join('');
+      langSel.querySelectorAll('.btn-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+          localStorage.setItem('spades_lang', btn.dataset.lang);
+          PHRASES = _buildPhrases(btn.dataset.lang);
+          this._previewNames = null;
+          this._applyLocale();
+          this._updateRoster();
+        });
+      });
+    }
   }
 }
 
