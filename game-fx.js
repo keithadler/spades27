@@ -111,6 +111,7 @@ Object.assign(Game.prototype, {
     const overlay = document.getElementById('message-overlay');
     if (!overlay) { callback(); return; }
     overlay.classList.remove('hidden');
+    overlay.style.background = 'rgba(0,0,0,0.3)'; // Transparent — show table behind
 
     const dealerName = escHTML(this.players[this.dealer].name);
     const leaderIdx = (this.dealer + 1) % 4;
@@ -144,6 +145,7 @@ Object.assign(Game.prototype, {
     setTimeout(() => {
       overlay.classList.add('hidden');
       overlay.innerHTML = '';
+      overlay.style.background = ''; // Reset to default
       callback();
     }, this._speedMs(2800));
   },

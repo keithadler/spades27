@@ -223,13 +223,25 @@ class AI {
     // ----- MEDIUM / HARD: Balanced trick counting -----
     let tricks = 0;
 
-    // Spade tricks — top-down
+    // Spade tricks — count based on rank and position
     const spadesSorted = [...spades].sort((a, b) => b.value - a.value);
-    for (let i = 0; i < spadesSorted.length && i < 5; i++) {
-      if (spadesSorted[i].value >= 14 - i) {
-        tricks += 1;       // A, K+A, Q+AK — sure winners
-      } else if (spadesSorted[i].value >= 11 && i < 2) {
-        tricks += 0.5;     // J or Q near top — probable winner
+    const spadeCount = spadesSorted.length;
+    for (let i = 0; i < spadesSorted.length && i < 6; i++) {
+      const v = spadesSorted[i].value;
+      if (v === 14) {
+        tricks += 1;           // A♠ — always wins
+      } else if (v === 13) {
+        // K♠ — wins unless someone has A♠. With more spades, more likely to survive.
+        tricks += spadeCount >= 3 ? 0.85 : 0.7;
+      } else if (v === 12) {
+        // Q♠ — needs A and K gone
+        tricks += (i <= 1) ? 0.65 : 0.4;
+      } else if (v === 11) {
+        // J♠
+        tricks += (i <= 1) ? 0.5 : 0.25;
+      } else if (v >= 8 && spadeCount >= 5) {
+        // Mid spades with 5+ spade length — likely to win late
+        tricks += 0.3;
       }
     }
 

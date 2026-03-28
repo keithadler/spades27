@@ -1099,22 +1099,20 @@ class Game {
     const area = document.getElementById('trick-area');
     if (!area) return;
     area.innerHTML = '';
+    const skin = getCardSkinColors();
     for (const t of this.trick) {
       const el = document.createElement('div');
       el.className = 'trick-card';
       el.style.position = 'absolute';
-      // Position based on player seat
+      el.style.background = `linear-gradient(160deg, ${skin.face} 0%, ${skin.faceDark} 100%)`;
+      const pipColor = skin.pip && (t.card.suit === 'spades' || t.card.suit === 'clubs') ? skin.pip : t.card.color;
       switch (t.playerIndex) {
-        case 0: // bottom (human)
-          el.style.bottom = '10px'; el.style.left = '50%'; el.style.transform = 'translateX(-50%)'; break;
-        case 1: // left
-          el.style.top = '50%'; el.style.left = '10px'; el.style.transform = 'translateY(-50%)'; break;
-        case 2: // top (partner)
-          el.style.top = '10px'; el.style.left = '50%'; el.style.transform = 'translateX(-50%)'; break;
-        case 3: // right
-          el.style.top = '50%'; el.style.right = '10px'; el.style.transform = 'translateY(-50%)'; break;
+        case 0: el.style.bottom = '10px'; el.style.left = '50%'; el.style.transform = 'translateX(-50%)'; break;
+        case 1: el.style.top = '50%'; el.style.left = '10px'; el.style.transform = 'translateY(-50%)'; break;
+        case 2: el.style.top = '10px'; el.style.left = '50%'; el.style.transform = 'translateX(-50%)'; break;
+        case 3: el.style.top = '50%'; el.style.right = '10px'; el.style.transform = 'translateY(-50%)'; break;
       }
-      el.innerHTML = `<span style="color:${t.card.color};font-weight:800;">${t.card.rank}</span><span style="color:${t.card.color}">${t.card.symbol}</span>`;
+      el.innerHTML = `<span style="color:${pipColor};font-weight:800;font-size:1.5rem;">${t.card.rank}</span><span style="color:${pipColor};font-size:1.2rem;">${t.card.symbol}</span>`;
       area.appendChild(el);
     }
   }
