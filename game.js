@@ -1334,7 +1334,7 @@ class Game {
       if (br.top < 4) bubble.style.top = '4px';
     });
 
-    setTimeout(() => bubble.remove(), 2800);
+    setTimeout(() => bubble.remove(), 4200);
   }
 
   _updateXPBar() {

@@ -333,23 +333,32 @@ Object.assign(Game.prototype, {
 
     if (panel) {
       const bubble = document.createElement('div');
-      bubble.className = 'speech-bubble';
-      bubble.style.fontSize = bid === 0 ? '1.3rem' : '1.1rem';
+      bubble.className = 'speech-bubble bid-bubble';
       bubble.textContent = player.blindNil ? '🙈 BLIND NIL!' : bid === 0 ? '🎯 NIL!' : `Bid ${bid}`;
       const r = panel.getBoundingClientRect();
-      bubble.style.left = (r.left + r.width / 2 - 60) + 'px';
-      bubble.style.top = (r.bottom + 4) + 'px';
-      document.body.appendChild(bubble);
-      setTimeout(() => bubble.remove(), 2000);
 
-      // Particles on nil bid
+      // Position based on player side
+      if (pos === 'left') {
+        bubble.style.left = (r.right + 8) + 'px';
+        bubble.style.top = (r.top + r.height / 2 - 24) + 'px';
+      } else if (pos === 'right') {
+        bubble.style.right = (window.innerWidth - r.left + 8) + 'px';
+        bubble.style.top = (r.top + r.height / 2 - 24) + 'px';
+      } else {
+        bubble.style.left = (r.left + r.width / 2 - 60) + 'px';
+        bubble.style.top = Math.max(4, r.top - 60) + 'px';
+      }
+
+      document.body.appendChild(bubble);
+      setTimeout(() => bubble.remove(), 3000);
+
       if (bid === 0) {
         spawnParticles(r.left + r.width / 2, r.top + r.height / 2, 20, 'particle-gold');
         this._haptic([20, 40, 60]);
       }
     }
 
-    setTimeout(callback, this._speedMs(1500));
+    setTimeout(callback, this._speedMs(2000));
   },
 
   // =========================================================================
