@@ -1,0 +1,17 @@
+{
+  "name": "Spades",
+  "short_name": "Spades",
+  "description": "Free browser Spades card game with AI opponents, 4 languages, achievements & more.",
+  "author": "Keith Adler",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0a1428",
+  "theme_color": "#4a90d9",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a1428'/%3E%3Cpath d='M32 12 C32 12 16 28 16 38 C16 44 20 48 26 48 C28 48 30 47 32 45 C34 47 36 48 38 48 C44 48 48 44 48 38 C48 28 32 12 32 12Z' fill='%234a90d9'/%3E%3Crect x='30' y='44' width='4' height='10' rx='1' fill='%234a90d9'/%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
