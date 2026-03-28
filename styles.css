@@ -480,3 +480,30 @@ body::after {
 #floating-arrow.point-right::after { border-left:none; border-right:none; border-top:20px solid transparent; border-bottom:20px solid transparent; border-left:34px solid #4a90d9; animation:arrowBobRight 0.8s ease-in-out infinite; }
 @keyframes arrowBobRight { 0%,100% { transform:translateX(0); } 50% { transform:translateX(8px); } }
 @media (max-width:480px) { #floating-arrow { display:none; } }
+
+
+/* Bid tracker on table */
+#bid-tracker {
+  position:absolute; top:10px; right:10px; z-index:5;
+  padding:10px 14px; border-radius:12px;
+  background:linear-gradient(145deg, rgba(0,0,0,0.6), rgba(0,0,0,0.4));
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,0.06);
+  font-size:0.75rem; min-width:140px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.4);
+}
+#bid-tracker:empty { display:none; }
+.bt-title { font-size:0.6rem; opacity:0.35; text-transform:uppercase; letter-spacing:2px; margin-bottom:6px; text-align:center; font-weight:700; }
+.bt-row { display:flex; justify-content:space-between; align-items:center; padding:3px 0; gap:8px; }
+.bt-name { opacity:0.7; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70px; }
+.bt-bid { font-weight:800; color:#4a90d9; min-width:20px; text-align:center; }
+.bt-tricks { font-weight:800; min-width:20px; text-align:center; }
+.bt-tricks.made { color:#4aaf6c; }
+.bt-tricks.over { color:#e04a3a; }
+.bt-tricks.under { color:rgba(255,255,255,0.5); }
+.bt-divider { height:1px; background:rgba(255,255,255,0.06); margin:4px 0; }
+.bt-team-row { display:flex; justify-content:space-between; font-weight:800; font-size:0.7rem; padding:2px 0; }
+@media (max-width:480px) {
+  #bid-tracker { padding:6px 8px; min-width:110px; font-size:0.65rem; top:4px; right:4px; }
+  .bt-name { max-width:50px; }
+}

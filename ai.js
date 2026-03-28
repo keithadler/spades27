@@ -86,39 +86,31 @@
  *   FACTOR 1: LEADING (it's your turn to start a trick)
  *   ─────────────────────────────────────────────────────
  *   When you lead, you choose the suit everyone must follow.
+ *   THREE MODES based on team bid progress:
  *
- *   - Lead ACES first (+8 points). An ace of a side suit is a guaranteed
- *     winner when you lead it — no one can beat it unless they're void
- *     and trump. Get your sure tricks early.
+ *   a) I NEED TRICKS → lead aggressively. Aces first (+8), long
+ *      suits (+3), high cards (+0.5 per rank).
  *
- *   - Prefer LONG SUITS (+3 points for 4+ cards). If you have 5 hearts,
- *     leading hearts repeatedly forces opponents to run out of hearts,
- *     letting your lower hearts win later.
+ *   b) I'M DONE BUT PARTNER NEEDS TRICKS → lead LOW (+0.8 per low).
+ *      Don't lead aces (-8) or kings (-4) — those steal tricks your
+ *      partner needs. Don't lead spades (-5). Give partner chances
+ *      to win with their own cards.
  *
- *   - Prefer HIGH CARDS in general (+0.5 × card value). A King lead is
- *     better than a 3 lead.
+ *   c) TEAM MADE BID → lead low to avoid bags. Every trick is a bag.
  *
- *   - AVOID leading spades (-3 points) unless you have 4+ spades and
- *     they're high (+5 points). Leading spades "draws trump" — good if
- *     you have more spades than everyone else, bad if you're wasting
- *     your trump cards.
- *
- *   FACTOR 2: FOLLOWING — CAN WIN (+10 or -3 points)
+ *   FACTOR 2: FOLLOWING — CAN WIN
  *   ─────────────────────────────────────────────────────
- *   If your card would win the current trick:
+ *   THREE MODES matching the leading logic:
  *
- *   - NEED TRICKS? (+10 points, win it!) If you haven't met your bid
- *     yet, winning is valuable. But prefer winning CHEAPLY (-0.3 per
- *     card value) — don't waste the A♠ when the 3♠ would do.
+ *   a) I NEED TRICKS → win it (+10), but cheaply (-0.3 per rank).
  *
- *   - ALREADY MET BID? (-3 points, avoid it!) Extra tricks are BAGS.
- *     Every 10 bags = -100 penalty. If you've already made your bid,
- *     actively try to LOSE tricks. Spades are especially bad to waste
- *     here (-5 points).
+ *   b) I'M DONE BUT PARTNER NEEDS TRICKS → usually DON'T win (-5).
+ *      Let partner take their own tricks. Exception: if there aren't
+ *      enough tricks left in the round for partner to make their bid,
+ *      help them (+6). Also help if partner already played and is
+ *      losing (+3).
  *
- *   - DON'T TRUMP UNNECESSARILY (-5 points). If you're void in the
- *     lead suit and could play a spade to win, but you've already met
- *     your bid, don't. Throw off a low card from another suit instead.
+ *   c) TEAM MADE BID → avoid winning (-8). Bags are poison.
  *
  *   FACTOR 3: FOLLOWING — CAN'T WIN (dump low cards)
  *   ─────────────────────────────────────────────────────
@@ -369,6 +361,44 @@ class AI {
     const isLast = trick.length === 3;         // We're the 4th (last) to play
     const partnerPlayed = trick.length === 2;  // Partner played 2 cards ago
 
+    // Step 2b: Calculate bid progress — TEAM-AWARE
+    // This is the key insight: in partnership Spades, what matters is
+    // whether the TEAM has made its combined bid, not just whether
+    // I personally have enough tricks.
+    //
+    // Example: Team bid is 7 (I bid 4, partner bid 3).
+    //   - I have 5 tricks, partner has 1 → team has 6, needs 1 more
+    //   - Even though I'VE made my bid (5 >= 4), the TEAM hasn't (6 < 7)
+    //   - But I should back off and let partner get their tricks
+    //
+    // Three states:
+    //   iNeedTricks:  I personally haven't made my individual bid yet
+    //   teamNeedsTricks: The team hasn't made the combined bid yet
+    //   teamMadeBid: The team has made it — every trick is now a bag
+    let iNeedTricks = true;
+    let teamNeedsTricks = true;
+    let teamMadeBid = false;
+    let partnerNeedsTricks = true;
+    let tricksLeftInRound = 13;
+
+    if (ctx) {
+      iNeedTricks = ctx.myBid > 0 && ctx.myTricks < ctx.myBid;
+      partnerNeedsTricks = ctx.partnerBid > 0 && ctx.partnerTricks < ctx.partnerBid;
+
+      if (ctx.allPlayers && ctx.teamMode) {
+        const myTeamPlayers = ctx.allPlayers.filter(p => p.team === ctx.myTeam);
+        const teamTricks = myTeamPlayers.reduce((s, p) => s + p.tricks, 0);
+        const teamBid = myTeamPlayers.filter(p => p.bid > 0).reduce((s, p) => s + p.bid, 0);
+        teamNeedsTricks = teamTricks < teamBid;
+        teamMadeBid = teamTricks >= teamBid && teamBid > 0;
+        const totalTricks = ctx.allPlayers.reduce((s, p) => s + p.tricks, 0);
+        tricksLeftInRound = 13 - totalTricks;
+      } else {
+        teamNeedsTricks = iNeedTricks;
+        teamMadeBid = !iNeedTricks && ctx.myBid > 0;
+      }
+    }
+
     // Step 3: Score every legal card
     const scored = playable.map(card => {
       let score = 0;
@@ -376,51 +406,71 @@ class AI {
 
       // ===== FACTOR 1: LEADING STRATEGY =====
       // When we lead, we choose the battlefield. Pick wisely.
+      // KEY: If I've made MY bid but partner still needs tricks,
+      // lead LOW to give partner opportunities instead of stealing them.
       if (isLeading) {
-        if (!card.isSpade) {
-          // --- Lead non-spades ---
-          // Base score: higher cards are better leads (+0.5 per rank)
-          score += card.value * 0.5;
-
-          // Lead ACES immediately (+8). They're guaranteed winners
-          // when you lead them — get your sure tricks banked early.
-          if (card.value === 14) score += 8;
-
-          // Prefer LONG SUITS (+3 for 4+ cards). If you have 5 hearts,
-          // leading hearts repeatedly exhausts opponents' hearts,
-          // making your lower hearts winners later.
-          const suitCount = hand.filter(c => c.suit === card.suit).length;
-          if (suitCount >= 4) score += 3;
+        if (iNeedTricks) {
+          // I still need tricks — lead aggressively
+          if (!card.isSpade) {
+            score += card.value * 0.5;
+            if (card.value === 14) score += 8;
+            const suitCount = hand.filter(c => c.suit === card.suit).length;
+            if (suitCount >= 4) score += 3;
+          } else {
+            const mySpades = hand.filter(c => c.isSpade).length;
+            if (mySpades >= 4 && card.value >= 12) score += 5;
+            else score -= 3;
+          }
+        } else if (partnerNeedsTricks && teamNeedsTricks) {
+          // I've made MY bid but partner still needs tricks.
+          // Lead LOW non-spades to give partner winning opportunities.
+          // Don't lead aces — those steal tricks partner needs.
+          if (!card.isSpade) {
+            score += (14 - card.value) * 0.8; // Prefer low cards
+            if (card.value === 14) score -= 8; // DON'T lead aces
+            if (card.value === 13) score -= 4; // Avoid kings too
+          } else {
+            score -= 5; // Don't lead spades — partner can't win those easily
+          }
         } else {
-          // --- Lead spades (drawing trump) ---
-          // Only good if you have MORE spades than opponents.
-          // With 4+ high spades, leading them strips opponents' trump.
-          const mySpades = hand.filter(c => c.isSpade).length;
-          if (mySpades >= 4 && card.value >= 12) score += 5;
-          else score -= 3; // Don't waste spades leading with few
+          // Team made bid — lead low to avoid bags
+          score += (14 - card.value) * 0.5;
+          if (card.isSpade) score -= 5;
         }
       }
 
       // ===== FACTOR 2: FOLLOWING — WE CAN WIN =====
-      // We're not leading, and this card would take the trick.
       else if (wouldWin) {
-        if (ctx && ctx.myTricks < ctx.myBid) {
-          // NEED MORE TRICKS to make our bid — winning is valuable!
+        if (iNeedTricks) {
+          // I personally need more tricks — win it!
           score += 10;
-
-          // But win CHEAPLY. Don't play the A♠ when the 5♠ would do.
-          // (-0.3 per rank value = prefer lower winning cards)
-          score -= card.value * 0.3;
-
-          // Don't TRUMP (play a spade on a non-spade lead) unless
-          // we really need the trick. Trumping wastes a spade that
-          // could win a future trick.
+          score -= card.value * 0.3; // Win cheaply
           if (card.isSpade && leadSuit !== 'spades') score -= 5;
+        } else if (partnerNeedsTricks && teamNeedsTricks) {
+          // I've made my bid but PARTNER still needs tricks.
+          // Only win if partner CAN'T win this trick, or if there
+          // aren't enough tricks left for partner to make their bid.
+          const partnerTricksNeeded = ctx ? (ctx.partnerBid - ctx.partnerTricks) : 0;
+          if (partnerTricksNeeded > tricksLeftInRound) {
+            // Not enough tricks left — we need to help
+            score += 6;
+          } else if (partnerPlayed) {
+            // Partner already played — if they're losing, we might
+            // need to win to prevent opponents from taking it
+            const partnerCard = trick.length >= 2 ? trick[trick.length - 2] : null;
+            if (partnerCard && !this._isWinning(partnerCard, trick, leadSuit)) {
+              score += 3; // Partner is losing, maybe help
+            } else {
+              score -= 6; // Partner is winning — don't overtake!
+            }
+          } else {
+            // Partner hasn't played yet — play low, let them win
+            score -= 5;
+          }
         } else {
-          // ALREADY MET OUR BID — extra tricks are BAGS.
-          // 10 bags = -100 penalty. Actively try to lose!
-          score -= 3;
-          if (card.isSpade) score -= 5; // Especially don't waste spades
+          // TEAM MADE BID — extra tricks are BAGS. Avoid winning!
+          score -= 8;
+          if (card.isSpade) score -= 5;
         }
       }
 
@@ -524,51 +574,26 @@ class AI {
       }
 
       // ===== FACTOR 7: BAG WARFARE (Medium/Hard) =====
-      // Two sides of the same coin:
-      //
-      // A) OWN TEAM MADE BID → avoid winning more tricks (bags)
-      //    If our team (me + partner) has already won enough tricks
-      //    to make our combined bid, every extra trick is a bag.
-      //    10 bags = -100 penalty. Actively try to LOSE.
-      //
-      // B) OPPONENTS MADE BID → force them to win extra tricks
-      //    If the opposing team has made their bid, every trick we
-      //    force on them is a bag. Lead into them, play high cards
-      //    that force them to overtake.
+      // Uses the team-aware state computed in Step 2b.
       if (ctx && ctx.allPlayers && ctx.teamMode) {
-        // Calculate team trick totals
-        const myTeamTricks = ctx.allPlayers.filter(p => p.team === ctx.myTeam)
-          .reduce((s, p) => s + p.tricks, 0);
-        const myTeamBid = ctx.allPlayers.filter(p => p.team === ctx.myTeam && p.bid > 0)
-          .reduce((s, p) => s + p.bid, 0);
         const oppTeamTricks = ctx.allPlayers.filter(p => p.team !== ctx.myTeam)
           .reduce((s, p) => s + p.tricks, 0);
         const oppTeamBid = ctx.allPlayers.filter(p => p.team !== ctx.myTeam && p.bid > 0)
           .reduce((s, p) => s + p.bid, 0);
-
-        const myTeamMade = myTeamTricks >= myTeamBid && myTeamBid > 0;
         const oppTeamMade = oppTeamTricks >= oppTeamBid && oppTeamBid > 0;
 
-        // A) Our team made bid — AVOID bags
-        if (myTeamMade) {
-          if (wouldWin) {
-            score -= 8;  // Don't win tricks we don't need
-            if (card.isSpade) score -= 5; // Especially don't trump
-          } else {
-            score += 3;  // Good — we're not winning
-          }
+        // Our team made bid — reinforced bag avoidance (stacks with Factor 2)
+        if (teamMadeBid) {
+          if (wouldWin) score -= 4;
         }
 
-        // B) Opponents made bid — FORCE bags on them
+        // Opponents made bid — force bags on them
         if (oppTeamMade) {
           if (isLeading) {
-            // Lead HIGH cards to force opponents to play over us
-            // or take the trick themselves
             if (card.value >= 12) score += 5;
-            if (card.value === 14) score += 3; // Aces force responses
+            if (card.value === 14) score += 3;
           }
-          if (wouldWin && !myTeamMade) {
-            // Win tricks to deny opponents the chance to duck
+          if (wouldWin && !teamMadeBid) {
             score += 4;
           }
         }

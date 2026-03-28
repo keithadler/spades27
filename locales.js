@@ -143,41 +143,296 @@ LOCALES.en = {
   }
 };
 
+// SPANISH
 LOCALES.es = {
   name: 'Español', flag: '🇪🇸', dir: 'ltr',
-  names: ['Alejandro','Valentina','Santiago','Camila','Matías','Isabella','Sebastián','Lucía','Emiliano','Sofía','Daniel','Mariana','Andrés','Gabriela','Nicolás','Fernanda','Diego','Paula','Tomás','Catalina'],
-  cities: ['Ciudad de México','Buenos Aires','Madrid','Bogotá','Lima','Santiago','Barcelona','Medellín','Guadalajara','Montevideo'],
-  ui: Object.assign({}, (function(){ const base = {}; for (const k in LOCALES.en.ui) base[k] = LOCALES.en.ui[k]; return base; })(), {
-    startGame: 'Iniciar Juego', gameTitle: 'ESPADAS', gameSubtitle: 'JUEGO DE CARTAS',
-    bidPhase: 'Apuestas', bid: 'Apuesta', yourBid: 'Tu Apuesta', nil: 'Nulo',
-    tricks: 'Bazas', bags: 'Bolsas', spadesBroken: '♠ ¡Espadas Rotas!',
-    playerName: 'Jugador', yourTurn: 'TU TURNO', thinking: 'Pensando',
+  names: [
+    'Alejandro','Valentina','Santiago','Camila','Matías','Isabella','Sebastián','Lucía',
+    'Emiliano','Sofía','Daniel','Mariana','Andrés','Gabriela','Nicolás','Fernanda',
+    'Diego','Paula','Tomás','Catalina','Javier','Elena','Rafael','Carmen',
+    'Miguel','Pilar','Roberto','Dolores','Enrique','Rosario','Pablo','Esperanza',
+    'Fernando','Consuelo','Ramón','Guadalupe','Arturo','Mercedes','Héctor','Beatriz'
+  ],
+  cities: [
+    'Ciudad de México','Buenos Aires','Madrid','Bogotá','Lima',
+    'Santiago','Barcelona','Medellín','Guadalajara','Montevideo',
+    'San Juan, PR','La Habana','Quito','Caracas','Santo Domingo',
+    'Panamá','San José, CR','Cartagena','Sevilla','Córdoba'
+  ],
+  ui: Object.assign({}, (function(){ const b = {}; for (const k in LOCALES.en.ui) b[k] = LOCALES.en.ui[k]; return b; })(), {
+    startGame: 'Iniciar Juego', resumeGame: '▶ Continuar Partida', rematch: 'Revancha',
+    newGame: 'Nuevo Juego', copyLog: '📋 Copiar Registro', copied: '✅ Copiado!',
+    gameMode: 'Modo de Juego', partnership: 'Equipos (2v2)', cutthroat: 'Todos contra Todos',
+    playTo: 'Jugar Hasta', custom: 'Otro',
+    aiDifficulty: 'Dificultad IA', easy: '😊 Fácil', mixed: '🎲 Mixto', hard: '🧠 Difícil',
+    gameSpeed: 'Velocidad', fast: '🐇 Rápido', normal: '🎯 Normal', slow: '🐢 Lento',
+    players: 'Jugadores', rules: '📖 Reglas', tutorial: '🎓 Tutorial',
+    gameLog: '📋 Registro', stats: '📊 Estadísticas', prefs: '🎨 Preferencias',
+    shortcuts: '❓ Atajos', rageQuit: '💀 Abandonar (cuenta como derrota)',
+    yourTurn: 'TU TURNO', thinking: 'Pensando', turn: 'turno',
+    scores: 'Puntos', round: 'Ronda', gameOver: 'FIN DEL JUEGO',
+    youWin: '🏆 ¡Ganaste!', wins: 'Victorias', close: 'Cerrar', continue_: 'Continuar',
+    theme: 'Tema', dark: '🌙 Oscuro', light: '☀️ Claro',
+    tableTheme: 'Tema de Mesa', audio: 'Audio',
+    music: '🎵 Música', sfx: '🔊 Efectos',
+    trashTalk: 'Charla IA', off: 'No', low: 'Poco', max: 'Máx',
+    colorblind: '♿ Modo Daltónico', language: 'Idioma',
+    playerName: 'Jugador', accessibility: 'Accesibilidad',
+    overall: 'General', gamesPlayed: 'Partidas Jugadas', winsLosses: 'Victorias / Derrotas',
+    winRate: 'Tasa de Victoria', bestStreak: 'Mejor Racha',
+    totalScored: 'Puntos Totales', lifetime: 'Historial', achievements: 'Logros',
+    playingTo: 'Jugando a', scoreboard: 'Puntos', pts: 'pts',
+    yourTeam: 'Tu Equipo', opponentsTeam: 'Oponentes', vsYou: 'vs tú', teammate: 'COMPAÑERO',
+    achievementUnlocked: 'Logro Desbloqueado',
+    startPlaying: '¡A Jugar!', next: 'Siguiente →', stepOf: 'de', step: 'Paso', skip: 'Saltar',
+    newcomer: 'Nuevo', rookie: 'Novato', spadeMaster: 'Maestro', veteran: 'Veterano',
+    regular: 'Regular', apprentice: 'Aprendiz', beginner: 'Principiante',
+    aggressive: 'Agresivo', defensive: 'Defensivo', chaotic: 'Caótico', calculated: 'Calculador', bully: 'Matón',
+    bidPhase: 'Apuestas', bid: 'Apuesta', yourBid: 'Tu Apuesta', nil: 'Nulo', blindNil: 'Nulo Ciego',
+    tricks: 'Bazas', bags: 'Bolsas', set: '¡FALLO!', made: '¡Hecho!',
+    spadesBroken: '♠ ¡Espadas Rotas!', leadPlayer: 'abre', bidSummary: 'Apuestas',
+    roundResults: 'Resultados de Ronda',
+    gameTitle: 'ESPADAS', gameSubtitle: 'JUEGO DE CARTAS',
+    rerollOpponent: 'Cambiar oponente',
+    rageQuitLossNote: 'Esto cuenta como derrota.',
+    darkTheme: '🌙 Oscuro', lightTheme: '☀️ Claro',
+    tableRandom: 'Aleatorio', tableGreen: 'Verde Clásico', tableBlue: 'Azul Océano',
+    tableRed: 'Rojo Casino', tablePurple: 'Púrpura Real', tableWood: 'Madera',
+    resetStats: '🗑️ Borrar Estadísticas',
+    resetConfirm: 'Esto borrará todas las estadísticas. ¿Estás seguro?',
+    achFirstVictory: 'Primera Victoria', achFirstVictoryDesc: 'Gana tu primer juego',
+    achOnFire: 'En Llamas', achOnFireDesc: 'Gana 3 juegos seguidos',
+    achUnstoppable: 'Imparable', achUnstoppableDesc: 'Gana 5 juegos seguidos',
+    achNilMaster: 'Maestro del Nulo', achNilMasterDesc: 'Haz un Nulo exitoso',
+    achBlindNil: 'Fe Ciega', achBlindNilDesc: 'Haz un Nulo Ciego exitoso',
+    achSetThem: '¡Fallo!', achSetThemDesc: 'Haz fallar al equipo rival',
+    achRegular: 'Regular', achRegularDesc: 'Juega 10 partidas',
+    achSpadeMaster: 'Maestro de Espadas', achSpadeMasterDesc: 'Juega 50 partidas',
+    achPerfectBid: 'Apuesta Perfecta', achPerfectBidDesc: 'Gana exacto sin bolsas',
+    achBoston: 'Boston', achBostonDesc: 'Gana las 13 bazas en una ronda',
+    achCleanGame: 'Juego Limpio', achCleanGameDesc: 'Gana sin bolsas',
+    achComebackKid: 'Remontada', achComebackKidDesc: 'Gana después de ir perdiendo por 100+',
+    achLegendary: 'Legendario', achLegendaryDesc: 'Gana 10 juegos seguidos',
+    rageQuitTaunts: [
+      '¿En serio? ¿Te vas así? 🏃‍♂️', '¿Ya te rindes? Tu compañero está decepcionado. 😂',
+      'Los ganadores nunca se rinden. 🤔', 'Abandonar es perder con pasos extra. 💀',
+    ],
+    introHumanFirst: ['¡Vamos! 🎯', 'A jugar 🃏', 'Mi mesa. 😎'],
+    introAiFirst: ['Atrévete 💪', 'Juego fácil 😏', 'Sin piedad 🔥', 'Cuida tus bolsas 🎒'],
+    introHumanMid: ['Nueva ronda 🎲', 'A enfocarse 🧠', '¡Vamos! 🃏'],
+    introAiMid: ['Aquí vamos 🎲', 'Listo 💪', 'Mi turno ✨'],
+    introAiCloseToWin: ['GG en camino 😎', '¿Lo sientes? 💀', 'Cerrando esto 🎁'],
+    introAiTrailing: ['No me preocupo 😤', '¡Hora de remontar! 🔄', 'Racha de suerte viene'],
+    introAiLeading: ['Atrápame si puedes 🏃', 'Me gusta esta ventaja 😏'],
   }),
-  p: LOCALES.en.p
+  p: {
+    z: {
+      o: [['¿eso fue tuyo? 💀','ni yo me la creo','qué random'],['eso estuvo limpio 🧹','quédate llorando','tu apuesta está muerta'],['están cocinados 💀','gg','built different fr']],
+      t: [['somos equipo 💕','vamos bien'],['estamos comiendo 🔥','la sinergia'],['imbatibles 💀','nuestra era']],
+      d: [['no las bolsas 😭','mala mano'],['pequeño error ngl','confía en el proceso'],['estratégico 🧠','todo según el plan']],
+      w: [['¿¿GANAMOS?? 💀','no way'],['VAMOS 🔥','limpio 💅'],['los devoramos 💀','GOATED 🐐']]
+    },
+    m: {
+      o: [['¿Eso pasó? 😂','Qué jugada','Giro de trama'],['Perdón no perdón 💅','Beso de chef 👨‍🍳💋','Tus bolsas se notan'],['Soy el capitán ahora 🚢','Adiós 👋','Deberías haber ido nulo']],
+      t: [['¡Metas de equipo!','Somos los mejores'],['¡Equipo soñado! 💪','Nuestras apuestas están sincronizadas'],['Imparables 🔥','Icónicos']],
+      d: [['Esto está bien 🔥🐕','Solo una bolsa'],['Manifestando buenas cartas ✨','Mindset de crecimiento'],['Todo parte del plan','Caos calculado']],
+      w: [['¡NO PUEDO! 😭','¿Es real??'],['¡Hicimos la apuesta! 🎯','Mic drop 🎤'],['Los FALLARON 👑','Legendario']]
+    },
+    x: {
+      o: [['Esa baza es mía.','Me lo quedo.','Espadas son triunfo, chico.'],['Así se juega ♠ 😎','Suave.','De manual.'],['Siéntate, chico.','Cuenta tus bolsas.','Clase en sesión 📚']],
+      t: [['Buena cobertura.','Sólido.','Vamos bien.'],['Estamos cocinando 🍳','Apuestas sincronizadas.','Trabajo en equipo.'],['Imparables.','Se van a fallar.','Somos dueños de esta mesa.']],
+      d: [['Una bolsa. Lo que sea.','Pasa.'],['Reagrupando.','Paciencia gana juegos.'],['¿Crees que me afecta?','He sobrevivido peores manos.']],
+      w: [['¡Ganamos!','Nada mal.','Todavía tengo el toque.'],['Limpio 🧹','Eficiente.'],['La experiencia importa.','Clase terminada 📚']]
+    },
+    b: {
+      o: [['¡Válgame!','¡Esa baza es mía!','¡Todavía puedo!'],['¡ESO es triunfar! 👆','Espadas de la vieja escuela.','Lo leí como un libro 📖'],['¡En mis tiempos a eso le decíamos fallo!','¡Respeta a tus mayores! 👴']],
+      t: [['¡Buena jugada, compañero!','¡Buen equipo!'],['¡Como máquina!','¡Eso es trabajo en equipo!'],['¡Fuerza imparable!','¡Calibre de campeones!']],
+      d: [['¡Caramba! Una bolsa.','Ni modo.'],['Solo un bache.','La paciencia es virtud.'],['¿Crees que me molesta? Crié adolescentes.','El juego largo es MI juego.']],
+      w: [['¡Válgame, ganamos!','¡Todavía tengo el toque!'],['¡Así se hace! 🎯','¡Espadas de la vieja escuela!'],['¡Por ESO se respeta a los mayores! 👑','¡Clase magistral!']]
+    }
+  }
 };
 
+// ARABIC
 LOCALES.ar = {
   name: 'العربية', flag: '🇸🇦', dir: 'rtl',
-  names: ['أحمد','فاطمة','محمد','نورة','خالد','ليلى','عمر','سارة','يوسف','مريم','علي','هند','حسن','دانة','طارق','ريم','سعد','لمى','فيصل','جنى'],
-  cities: ['الرياض','جدة','دبي','القاهرة','بيروت','عمّان','الدوحة','الكويت','المنامة','مسقط'],
-  ui: Object.assign({}, (function(){ const base = {}; for (const k in LOCALES.en.ui) base[k] = LOCALES.en.ui[k]; return base; })(), {
-    startGame: 'ابدأ اللعبة', gameTitle: 'سبيدز', gameSubtitle: 'لعبة ورق',
-    bidPhase: 'المزايدة', bid: 'مزايدة', yourBid: 'مزايدتك', nil: 'صفر',
-    tricks: 'حيل', bags: 'أكياس', playerName: 'لاعب', yourTurn: 'دورك', thinking: 'يفكر',
+  names: [
+    'أحمد','فاطمة','محمد','نورة','خالد','ليلى','عمر','سارة',
+    'يوسف','مريم','علي','هند','حسن','دانة','طارق','ريم',
+    'سعد','لمى','فيصل','جنى','ناصر','عبير','ماجد','أسماء',
+    'بدر','شهد','سلطان','نوف','تركي','غادة','عبدالله','منال',
+    'راشد','هيا','حمد','وفاء','سالم','رنا','زياد','ديمة'
+  ],
+  cities: [
+    'الرياض','جدة','دبي','القاهرة','بيروت',
+    'عمّان','الدوحة','الكويت','المنامة','مسقط',
+    'أبوظبي','الدار البيضاء','تونس','الخرطوم','بغداد',
+    'دمشق','الرباط','طرابلس','صنعاء','الجزائر'
+  ],
+  ui: Object.assign({}, (function(){ const b = {}; for (const k in LOCALES.en.ui) b[k] = LOCALES.en.ui[k]; return b; })(), {
+    startGame: 'ابدأ اللعبة', rematch: 'إعادة المباراة', newGame: 'لعبة جديدة',
+    gameMode: 'نوع اللعبة', partnership: 'فرق (٢ ضد ٢)', cutthroat: 'الكل ضد الكل',
+    playTo: 'العب حتى', custom: 'مخصص',
+    aiDifficulty: 'صعوبة الذكاء', easy: '😊 سهل', mixed: '🎲 متنوع', hard: '🧠 صعب',
+    gameSpeed: 'السرعة', fast: '🐇 سريع', normal: '🎯 عادي', slow: '🐢 بطيء',
+    players: 'اللاعبون', rules: '📖 القواعد', stats: '📊 الإحصائيات', prefs: '🎨 الإعدادات',
+    shortcuts: '❓ الاختصارات', rageQuit: '💀 انسحاب (يحسب خسارة)',
+    yourTurn: 'دورك', thinking: 'يفكر', turn: 'دور',
+    scores: 'النقاط', round: 'الجولة', gameOver: 'انتهت اللعبة',
+    youWin: '🏆 فزت!', wins: 'انتصارات', close: 'إغلاق', continue_: 'متابعة',
+    theme: 'المظهر', dark: '🌙 داكن', light: '☀️ فاتح',
+    tableTheme: 'لون الطاولة', audio: 'الصوت',
+    music: '🎵 موسيقى', sfx: '🔊 مؤثرات',
+    trashTalk: 'كلام اللاعبين', off: 'إيقاف', low: 'قليل', max: 'أقصى',
+    playerName: 'لاعب', language: 'اللغة',
+    overall: 'عام', gamesPlayed: 'الألعاب', winsLosses: 'فوز / خسارة',
+    winRate: 'نسبة الفوز', bestStreak: 'أفضل سلسلة', achievements: 'الإنجازات',
+    playingTo: 'اللعب حتى', pts: 'نقاط',
+    yourTeam: 'فريقك', opponentsTeam: 'الخصوم', teammate: 'زميل',
+    achievementUnlocked: 'إنجاز جديد',
+    newcomer: 'جديد', rookie: 'مبتدئ', spadeMaster: 'أستاذ', veteran: 'محترف',
+    regular: 'منتظم', apprentice: 'متدرب', beginner: 'مبتدئ',
+    bidPhase: 'المزايدة', bid: 'مزايدة', yourBid: 'مزايدتك', nil: 'صفر', blindNil: 'صفر أعمى',
+    tricks: 'حيل', bags: 'أكياس', set: 'فشل!', made: 'نجح!',
+    spadesBroken: '♠ البستوني انكسر!', bidSummary: 'المزايدات', roundResults: 'نتائج الجولة',
+    gameTitle: 'سبيدز', gameSubtitle: 'لعبة ورق',
+    rerollOpponent: 'تغيير الخصم',
+    darkTheme: '🌙 داكن', lightTheme: '☀️ فاتح',
+    tableRandom: 'عشوائي', tableGreen: 'أخضر', tableBlue: 'أزرق',
+    tableRed: 'أحمر', tablePurple: 'بنفسجي', tableWood: 'خشبي',
+    resetStats: '🗑️ مسح الإحصائيات', resetConfirm: 'سيتم مسح جميع البيانات. متأكد؟',
+    achFirstVictory: 'أول فوز', achFirstVictoryDesc: 'فز بأول لعبة',
+    achOnFire: 'مشتعل', achOnFireDesc: 'فز 3 مرات متتالية',
+    achNilMaster: 'أستاذ الصفر', achNilMasterDesc: 'نجح في مزايدة صفر',
+    achBlindNil: 'إيمان أعمى', achBlindNilDesc: 'نجح في صفر أعمى',
+    achRegular: 'منتظم', achRegularDesc: 'العب 10 مباريات',
+    achSpadeMaster: 'أستاذ البستوني', achSpadeMasterDesc: 'العب 50 مباراة',
+    rageQuitTaunts: ['حقاً؟ ستمشي هكذا؟ 🏃‍♂️','تستسلم؟ زميلك محبط. 😂','الانسحاب خسارة بخطوات إضافية. 💀'],
+    introHumanFirst: ['يلا نبدأ! 🎯','جاهز 🃏','طاولتي 😎'],
+    introAiFirst: ['تعال 💪','لعبة سهلة 😏','بدون رحمة 🔥'],
+    introHumanMid: ['جولة جديدة 🎲','ركز 🧠'],
+    introAiMid: ['يلا 🎲','جاهز 💪','دوري ✨'],
+    introAiCloseToWin: ['GG جاية 😎','قربنا 💀'],
+    introAiTrailing: ['مو قلقان 😤','وقت الرجعة 🔄'],
+    introAiLeading: ['امسكني لو تقدر 🏃','الضغط عليك 👀'],
   }),
-  p: LOCALES.en.p
+  p: {
+    z: {
+      o: [['والله ما توقعت 💀','حظ بس'],['كلين 🧹','ما عندكم فرصة','أنا الماين كاراكتر'],['انتهيتوا 💀','جي جي','مختلف fr']],
+      t: [['فريق أسطوري 💕','يلا نكمل'],['ناكلهم 🔥','السينرجي عالية'],['ما يقدرون علينا 💀','نحن الأبطال']],
+      d: [['مو الأكياس 😭','يد سيئة'],['انتكاسة بسيطة','ثق بالعملية'],['استراتيجي 🧠','كل شي حسب الخطة']],
+      w: [['فزنا؟؟ 💀','مو معقول'],['يلا 🔥','خلصنا 💅'],['التهمناهم 💀','أسطورة 🐐']]
+    },
+    m: {
+      o: [['صار هالشي؟ 😂','ما صدقت'],['آسف مو آسف 💅','أكياسكم بانت'],['أنا القبطان 🚢','مع السلامة 👋']],
+      t: [['أهداف فريق!','الأفضل'],['فريق الأحلام! 💪','متناغمين'],['ما يوقفنا 🔥','أيقونيين']],
+      d: [['طبيعي 🔥🐕','بس كيس واحد'],['بلوت تويست 📖','عقلية نمو'],['كل شي حسب خطتي','فوضى محسوبة']],
+      w: [['ما أقدر! 😭','حقيقي؟؟'],['نجحنا بالمزايدة! 🎯','مايك دروب 🎤'],['فشلوا 👑','أسطوري']]
+    },
+    x: {
+      o: [['هذي حيلتي.','أخذها.','البستوني ترمب يا ولد.'],['هكذا تلعب ♠ 😎','سلس.','من الكتاب.'],['اقعد يا ولد.','احسب أكياسك.','الحصة بدأت 📚']],
+      t: [['تغطية حلوة.','صلب.','ماشيين.'],['نطبخ الحين 🍳','المزايدات متناغمة.'],['ما يوقفنا.','بيفشلون.']],
+      d: [['كيس واحد. عادي.','يصير.'],['صبر.','مريت بهالموقف.'],['تفتكر هذا يأثر؟','صبر استراتيجي.']],
+      w: [['فزنا!','مو سيئ.','لسه عندي اللمسة.'],['نظيف 🧹','فعّال.'],['الخبرة مهمة.','الحصة انتهت 📚']]
+    },
+    b: {
+      o: [['يا سلام!','حيلتي!','لسه فيني!'],['هذا ترمب! 👆','بستوني المدرسة القديمة.','قريتها مثل كتاب 📖'],['أيامنا كنا نسمي هذا فشل!','احترم كبارك! 👴']],
+      t: [['لعبة حلوة يا شريك!','فريق ممتاز!'],['مثل الآلة!','شغل فريق!'],['قوة ما توقف!','مستوى بطولات!']],
+      d: [['يا حسرة. كيس.','ما علينا.'],['بس مطب.','الصبر مفتاح.'],['ربيت مراهقين. هذا ولا شي.','اللعبة الطويلة لعبتي.']],
+      w: [['يا سلام فزنا!','لسه عندي اللمسة!'],['هكذا تلعب! 🎯','بستوني المدرسة القديمة!'],['عشان كذا تحترم الكبار! 👑','درس في الإتقان!']]
+    }
+  }
 };
 
+// CHINESE
 LOCALES.zh = {
   name: '中文', flag: '🇨🇳', dir: 'ltr',
-  names: ['伟明','小红','建国','美玲','志强','丽华','浩然','雅琴','天宇','思琪','俊杰','晓燕','子轩','婷婷','明辉','雪梅','文博','佳怡','嘉豪','诗涵'],
-  cities: ['北京','上海','广州','深圳','成都','杭州','武汉','南京','重庆','西安'],
-  ui: Object.assign({}, (function(){ const base = {}; for (const k in LOCALES.en.ui) base[k] = LOCALES.en.ui[k]; return base; })(), {
-    startGame: '开始游戏', gameTitle: '黑桃', gameSubtitle: '纸牌游戏',
-    bidPhase: '叫牌', bid: '叫牌', yourBid: '你的叫牌', nil: '零',
-    tricks: '墩', bags: '包', playerName: '玩家', yourTurn: '你的回合', thinking: '思考中',
+  names: [
+    '伟明','小红','建国','美玲','志强','丽华','浩然','雅琴',
+    '天宇','思琪','俊杰','晓燕','子轩','婷婷','明辉','雪梅',
+    '文博','佳怡','嘉豪','诗涵','宇航','欣怡','泽宇','梦瑶',
+    '瑞祥','秀英','国强','玉兰','德明','桂花','福生','淑芬',
+    '永康','凤英','金龙','翠花','大伟','春梅','海涛','月华'
+  ],
+  cities: [
+    '北京','上海','广州','深圳','成都',
+    '杭州','武汉','南京','重庆','西安',
+    '苏州','天津','长沙','青岛','大连',
+    '厦门','昆明','哈尔滨','台北','香港'
+  ],
+  ui: Object.assign({}, (function(){ const b = {}; for (const k in LOCALES.en.ui) b[k] = LOCALES.en.ui[k]; return b; })(), {
+    startGame: '开始游戏', rematch: '再来一局', newGame: '新游戏',
+    gameMode: '游戏模式', partnership: '组队 (2v2)', cutthroat: '自由对战',
+    playTo: '目标分数', custom: '自定义',
+    aiDifficulty: 'AI难度', easy: '😊 简单', mixed: '🎲 混合', hard: '🧠 困难',
+    gameSpeed: '速度', fast: '🐇 快速', normal: '🎯 正常', slow: '🐢 慢速',
+    players: '玩家', rules: '📖 规则', stats: '📊 统计', prefs: '🎨 设置',
+    shortcuts: '❓ 快捷键', rageQuit: '💀 退出（算作失败）',
+    yourTurn: '你的回合', thinking: '思考中', turn: '的回合',
+    scores: '分数', round: '第', gameOver: '游戏结束',
+    youWin: '🏆 你赢了！', wins: '胜', close: '关闭', continue_: '继续',
+    theme: '主题', dark: '🌙 深色', light: '☀️ 浅色',
+    tableTheme: '桌面主题', audio: '音频',
+    music: '🎵 背景音乐', sfx: '🔊 音效',
+    trashTalk: 'AI对话', off: '关', low: '少', max: '最多',
+    playerName: '玩家', language: '语言',
+    overall: '总览', gamesPlayed: '游戏场次', winsLosses: '胜/负',
+    winRate: '胜率', bestStreak: '最佳连胜', achievements: '成就',
+    playingTo: '目标', pts: '分',
+    yourTeam: '你的队伍', opponentsTeam: '对手队伍', teammate: '队友',
+    achievementUnlocked: '成就解锁',
+    newcomer: '新手', rookie: '菜鸟', spadeMaster: '大师', veteran: '老手',
+    regular: '常客', apprentice: '学徒', beginner: '初学者',
+    bidPhase: '叫牌', bid: '叫牌', yourBid: '你的叫牌', nil: '零', blindNil: '盲零',
+    tricks: '墩', bags: '包', set: '失败！', made: '成功！',
+    spadesBroken: '♠ 黑桃已破！', bidSummary: '叫牌', roundResults: '回合结果',
+    gameTitle: '黑桃', gameSubtitle: '纸牌游戏',
+    rerollOpponent: '换对手',
+    darkTheme: '🌙 深色', lightTheme: '☀️ 浅色',
+    tableRandom: '随机', tableGreen: '经典绿', tableBlue: '海洋蓝',
+    tableRed: '赌场红', tablePurple: '皇家紫', tableWood: '木质',
+    resetStats: '🗑️ 重置数据', resetConfirm: '将清除所有数据。确定吗？',
+    achFirstVictory: '首胜', achFirstVictoryDesc: '赢得第一场',
+    achOnFire: '火热', achOnFireDesc: '连赢3场',
+    achNilMaster: '零墩大师', achNilMasterDesc: '成功叫零',
+    achBlindNil: '盲目信仰', achBlindNilDesc: '成功盲零',
+    achRegular: '常客', achRegularDesc: '玩10场',
+    achSpadeMaster: '黑桃大师', achSpadeMasterDesc: '玩50场',
+    rageQuitTaunts: ['真的？就这样走了？🏃‍♂️','已经放弃了？队友很失望。😂','退出只是多走几步的失败。💀'],
+    introHumanFirst: ['开始吧！🎯','准备好了 🃏','我的主场 😎'],
+    introAiFirst: ['放马过来 💪','轻松局 😏','不留情 🔥'],
+    introHumanMid: ['新一轮 🎲','集中精神 🧠'],
+    introAiMid: ['开始了 🎲','准备好了 💪','轮到我 ✨'],
+    introAiCloseToWin: ['GG在即 😎','快了 💀'],
+    introAiTrailing: ['不担心 😤','逆转时刻 🔄'],
+    introAiLeading: ['来追我啊 🏃','压力在你 👀'],
   }),
-  p: LOCALES.en.p
+  p: {
+    z: {
+      o: [['不是吧💀','运气来了','什么情况'],['太干净了🧹','你们没机会','纯实力'],['你们完了💀','gg','天生不同']],
+      t: [['我们太强了💕','冲冲冲'],['我们在吃🔥','默契拉满'],['无敌💀','我们的时代']],
+      d: [['不是包😭','烂牌'],['小挫折','相信过程'],['战略性🧠','都在计划中']],
+      w: [['我们赢了？？💀','不可能'],['冲🔥','结束了💅'],['吞噬了他们💀','传奇🐐']]
+    },
+    m: {
+      o: [['这发生了？😂','小确幸'],['不好意思💅','你们的包在涨','厨师之吻👨‍🍳💋'],['我是船长了🚢','再见👋','该叫零的']],
+      t: [['团队目标！','最棒'],['梦之队！💪','叫牌同步'],['势不可挡🔥','传奇组合']],
+      d: [['没事🔥🐕','就一个包'],['剧情转折📖','成长心态'],['都在计划里','有计划的混乱']],
+      w: [['不敢相信😭','真的吗？？'],['叫牌成功！🎯','话筒放下🎤'],['他们失败了👑','传奇表现']]
+    },
+    x: {
+      o: [['这墩是我的。','收下了。','黑桃是王牌，小朋友。'],['就该这么打♠😎','稳。','教科书式。'],['坐下吧。','数数你的包。','上课了📚']],
+      t: [['好配合。','稳。','在路上了。'],['开始发力🍳','叫牌到位。','团队精神。'],['无人能挡。','他们要失败了。','这桌子是我们的。']],
+      d: [['一个包。无所谓。','正常。'],['调整一下。','耐心赢比赛。'],['你觉得这能影响我？','战略性耐心。']],
+      w: [['赢了！','不错。','宝刀未老。'],['干净🧹','高效。'],['经验很重要。','下课了📚']]
+    },
+    b: {
+      o: [['哎呀！','这墩是我的！','还能行！'],['这才叫王牌！👆','老派黑桃。','看得透透的📖'],['我们那时候管这叫失败！','数数你的包。','尊重长辈！👴']],
+      t: [['好牌，搭档！','好搭档！'],['配合默契！','团队精神！'],['势不可挡！','冠军水平！']],
+      d: [['哎。一个包。','算了。'],['小坎坷。','耐心是美德。'],['养过青春期的孩子。这不算什么。','持久战是我的强项。']],
+      w: [['哎呀赢了！','宝刀未老！'],['就该这样！🎯','老派黑桃！'],['尊重长辈！👑','大师级表现！']]
+    }
+  }
 };
 
 function getLocale(lang) { return LOCALES[lang] || LOCALES.en; }

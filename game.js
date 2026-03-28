@@ -890,6 +890,7 @@ class Game {
     this._renderAllHands();
     this._renderTrickInfo();
     this._updateFloatingArrow();
+    this._renderBidTracker();
     // Always render human hand — even when empty (clears the last card from DOM)
     if (this.players[0]) {
       this._renderHumanHand(this.players[0], []);
@@ -1044,10 +1045,58 @@ class Game {
     }
   }
 
+  _renderBidTracker() {
+    const el = document.getElementById('bid-tracker');
+    if (!el) return;
+    // Only show during trick play
+    if (!this.players || this.players.length === 0 || this._trickNum < 1) {
+      el.innerHTML = ''; return;
+    }
+
+    let html = '<div class="bt-title">Bid / Tricks</div>';
+
+    // Show each player: name, bid, tricks won (color-coded)
+    for (const p of this.players) {
+      if (!p.hasBid) continue;
+      const icon = this.teamMode ? (p.team === 0 ? '🟢' : '🔴') : '';
+      const bidLabel = p.blindNil ? 'BN' : p.bid === 0 ? 'NIL' : p.bid;
+      const isCurrent = p.index === this.currentPlayer;
+
+      // Color the tricks count: green if made, red if over, dim if under
+      let trickClass = 'under';
+      if (p.bid === 0) {
+        trickClass = p.tricks > 0 ? 'over' : 'made'; // nil: 0 tricks = good, any = bad
+      } else if (p.tricks >= p.bid) {
+        trickClass = p.tricks > p.bid ? 'over' : 'made';
+      }
+
+      html += `<div class="bt-row" style="${isCurrent ? 'opacity:1;' : ''}">
+        <span class="bt-name">${icon}${escHTML(p.name)}</span>
+        <span class="bt-bid">${bidLabel}</span>
+        <span class="bt-tricks ${trickClass}">${p.tricks}</span>
+      </div>`;
+    }
+
+    // Team totals
+    if (this.teamMode) {
+      const t0Bid = this.players.filter(p => p.team === 0 && p.bid > 0).reduce((s, p) => s + p.bid, 0);
+      const t1Bid = this.players.filter(p => p.team === 1 && p.bid > 0).reduce((s, p) => s + p.bid, 0);
+      const t0Tricks = this.players.filter(p => p.team === 0).reduce((s, p) => s + p.tricks, 0);
+      const t1Tricks = this.players.filter(p => p.team === 1).reduce((s, p) => s + p.tricks, 0);
+      html += '<div class="bt-divider"></div>';
+      html += `<div class="bt-team-row"><span>🟢 ${t0Tricks}/${t0Bid}</span><span>🔴 ${t1Tricks}/${t1Bid}</span></div>`;
+    }
+
+    el.innerHTML = html;
+  }
+
   _updateFloatingArrow() {
     const arrow = document.getElementById('floating-arrow');
     if (!arrow || !this.players || this.players.length === 0) return;
-    if (this.roundOver || this.gameOver) { arrow.style.display = 'none'; return; }
+    // Only show during trick play (trickNum 1-13), not during deal/bidding/round-end
+    if (this.roundOver || this.gameOver || this._trickNum < 1 || this._trickNum > 13) {
+      arrow.style.display = 'none'; return;
+    }
     arrow.style.display = '';
 
     const idx = this.currentPlayer;
