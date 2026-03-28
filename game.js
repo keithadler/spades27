@@ -354,14 +354,12 @@ class Game {
 
   _doBid() {
     if (this._currentBidIdx >= 4) {
-      // All bids placed — show summary then start play
+      // All bids placed — go straight to play (bid tracker is on the table)
       this._renderHumanHand(this.players[0], []);
-      this._showBidSummary(() => {
-        this.trickLeader = (this.dealer + 1) % 4;
-        this.currentPlayer = this.trickLeader;
-        this._trickNum = 1;
-        this._doTurn();
-      });
+      this.trickLeader = (this.dealer + 1) % 4;
+      this.currentPlayer = this.trickLeader;
+      this._trickNum = 1;
+      this._doTurn();
       return;
     }
 
