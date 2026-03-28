@@ -1,10 +1,10 @@
-# ♠ Spades
+# ♠ Spades 27
 
 A feature-rich, zero-dependency browser Spades card game. Pure HTML/CSS/JS — no build step, no server, no frameworks.
 
-## ▶ Play Now
+## ▶ [Play Now](https://keithadler.github.io/spades27/)
 
-Just open `index.html` in any browser.
+No install needed. Just click the link above or open `index.html` in any browser.
 
 ```bash
 # Or serve locally:
