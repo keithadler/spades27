@@ -326,16 +326,18 @@ class Game {
 
     if (this._roundNum === 1) {
       this._showCountdown(() => {
+        this._preRoundComments(() => {}); // Fire comments during deal
         this._animateDeal(() => {
           this._showRoundAnnouncement(() => {
-            this._preRoundComments(() => { this._startBidPhase(); });
+            this._startBidPhase();
           });
         });
       });
     } else {
+      this._preRoundComments(() => {}); // Fire comments during deal
       this._animateDeal(() => {
         this._showRoundAnnouncement(() => {
-          this._preRoundComments(() => { this._startBidPhase(); });
+          this._startBidPhase();
         });
       });
     }
