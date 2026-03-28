@@ -507,3 +507,89 @@ body::after {
   #bid-tracker { padding:6px 8px; min-width:110px; font-size:0.65rem; top:4px; right:4px; }
   .bt-name { max-width:50px; }
 }
+
+
+/* ===== Light Theme ===== */
+body[data-theme="light"] { background: #e8eef4; color: #1a2e3e; }
+body[data-theme="light"]::before {
+  background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(255,255,255,0.3) 100%),
+    radial-gradient(ellipse at 50% 50%, #b8d4e8 0%, #90b8d4 40%, #70a0c0 80%);
+}
+body[data-theme="light"]::after { opacity: 0.03; }
+body[data-theme="light"] .menu-container {
+  background: linear-gradient(145deg, rgba(255,255,255,0.85), rgba(240,244,248,0.95));
+  border-color: rgba(0,0,0,0.08); color: #1a2e3e;
+  box-shadow: 0 0 80px rgba(0,0,0,0.08), 0 30px 80px rgba(0,0,0,0.12);
+}
+body[data-theme="light"] .game-title {
+  background: linear-gradient(180deg, #1a3a5a 10%, #2a60a0 50%, #1a4080);
+  -webkit-background-clip: text; background-clip: text;
+}
+body[data-theme="light"] .title-spade { color: #2a60a0; }
+body[data-theme="light"] .subtitle { color: rgba(0,0,0,0.35); -webkit-text-fill-color: rgba(0,0,0,0.35); }
+body[data-theme="light"] .option-group label { color: #666; }
+body[data-theme="light"] .btn-option { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.12); color: #333; }
+body[data-theme="light"] .btn-option:hover { background: rgba(0,0,0,0.08); }
+body[data-theme="light"] .btn-option.active { color: #fff; }
+body[data-theme="light"] #player-roster { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.06); }
+body[data-theme="light"] .roster-card { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.06); color: #1a2e3e; }
+body[data-theme="light"] .roster-card.human { background: rgba(74,144,217,0.08); border-color: rgba(74,144,217,0.25); }
+body[data-theme="light"] .roster-card:hover { background: rgba(0,0,0,0.06); }
+body[data-theme="light"] #score-bar { background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(240,244,248,0.7)); border-bottom-color: rgba(0,0,0,0.08); }
+body[data-theme="light"] .sb-team, body[data-theme="light"] .sb-player-score { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.06); }
+body[data-theme="light"] .sb-team-name { color: #333; }
+body[data-theme="light"] .opponent-hand.top { background: linear-gradient(180deg, rgba(255,255,255,0.4), transparent); }
+body[data-theme="light"] .opponent-hand.left { background: linear-gradient(90deg, rgba(255,255,255,0.3), transparent); }
+body[data-theme="light"] .opponent-hand.right { background: linear-gradient(-90deg, rgba(255,255,255,0.3), transparent); }
+body[data-theme="light"] .opp-name { color: rgba(0,0,0,0.8); }
+body[data-theme="light"] .opp-record { color: #666; }
+body[data-theme="light"] .face-down { background: linear-gradient(160deg, #8ab0d0, #6090b8); border-color: rgba(60,100,150,0.3); }
+body[data-theme="light"] .face-down.teammate { background: linear-gradient(160deg, #80c090, #60a878); }
+body[data-theme="light"] #board-area { background: radial-gradient(ellipse at center, rgba(0,0,0,0.02), transparent 70%); }
+body[data-theme="light"] #trick-area { border-color: rgba(0,0,0,0.08); }
+body[data-theme="light"] #human-info { background: linear-gradient(0deg, rgba(255,255,255,0.6), rgba(240,244,248,0.3)); }
+body[data-theme="light"] .human-name, body[data-theme="light"] .human-record { color: #333; }
+body[data-theme="light"] .btn-menu { background: linear-gradient(145deg, rgba(255,255,255,0.7), rgba(240,244,248,0.5)); border-color: rgba(0,0,0,0.1); color: #333; }
+body[data-theme="light"] #game-dropdown { background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(245,248,250,0.98)); border-color: rgba(0,0,0,0.1); }
+body[data-theme="light"] .dd-item { color: #333; }
+body[data-theme="light"] .dd-item:hover { background: rgba(0,0,0,0.06); }
+body[data-theme="light"] .dd-key { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.12); color: rgba(0,0,0,0.35); }
+body[data-theme="light"] .message-box, body[data-theme="light"] .bid-panel,
+body[data-theme="light"] .rules-panel, body[data-theme="light"] .log-panel,
+body[data-theme="light"] .shortcuts-panel, body[data-theme="light"] .stats-panel {
+  background: linear-gradient(145deg, #fafbfc, #f0f2f5); border-color: rgba(0,0,0,0.08); color: #1a2e3e;
+}
+body[data-theme="light"] .message-box p { color: #333; }
+body[data-theme="light"] .gm-btn { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.1); color: #333; }
+body[data-theme="light"] .gm-btn:hover { background: rgba(0,0,0,0.1); }
+body[data-theme="light"] .rules-content p { color: #444; }
+body[data-theme="light"] .think-card { background: linear-gradient(145deg, rgba(255,255,255,0.92), rgba(245,248,250,0.95)); border-color: rgba(0,0,0,0.08); color: #333; }
+body[data-theme="light"] .speech-bubble { background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(245,248,250,0.98)); border-color: rgba(0,0,0,0.1); color: #333; }
+body[data-theme="light"] .bid-btn { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.12); color: #333; }
+body[data-theme="light"] .bid-btn:hover { background: rgba(74,144,217,0.15); border-color: #4a90d9; }
+body[data-theme="light"] .bid-card { background: rgba(255,255,255,0.95); border: 1px solid rgba(0,0,0,0.1); }
+body[data-theme="light"] .stat-row { border-bottom-color: rgba(0,0,0,0.06); color: #333; }
+body[data-theme="light"] .stat-label { color: #555; }
+body[data-theme="light"] .log-entry { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.04); color: #333; }
+body[data-theme="light"] .sc-row { border-bottom-color: rgba(0,0,0,0.06); color: #333; }
+body[data-theme="light"] .sc-row span { color: #555; }
+body[data-theme="light"] .sc-row kbd { background: rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.15); }
+body[data-theme="light"] .final-score-row { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.06); color: #333; }
+body[data-theme="light"] .skin-option { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.1); color: #333; }
+body[data-theme="light"] .skin-option:hover { background: rgba(0,0,0,0.06); }
+body[data-theme="light"] .toggle-row span { color: #333; }
+body[data-theme="light"] .toggle-slider { background: rgba(0,0,0,0.15); }
+body[data-theme="light"] .name-edit { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.15); color: #333; }
+body[data-theme="light"] .pref-label { color: #666; }
+body[data-theme="light"] #bid-tracker { background: linear-gradient(145deg, rgba(255,255,255,0.8), rgba(240,244,248,0.7)); border-color: rgba(0,0,0,0.08); color: #333; }
+body[data-theme="light"] .bt-name { color: #333; }
+body[data-theme="light"] #floating-arrow { filter: drop-shadow(0 0 8px rgba(42,96,160,0.5)); }
+body[data-theme="light"] #floating-arrow::after { border-top-color: #2a60a0; }
+body[data-theme="light"] #floating-arrow.point-up::after { border-bottom-color: #2a60a0; }
+body[data-theme="light"] #floating-arrow.point-left::after { border-right-color: #2a60a0; }
+body[data-theme="light"] #floating-arrow.point-right::after { border-left-color: #2a60a0; }
+body[data-theme="light"] .roster-reroll { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.12); color: #333; }
+body[data-theme="light"] .achievement-row { color: #333; }
+body[data-theme="light"] .achievement-desc { color: #666; }
+body[data-theme="light"] .trick-winner-popup { background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(245,248,250,0.98)); border-color: rgba(74,144,217,0.3); color: #333; }
+body[data-theme="light"] .spades-broken-banner { background: linear-gradient(145deg, rgba(74,144,217,0.95), rgba(42,96,160,0.95)); }

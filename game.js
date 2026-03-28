@@ -152,7 +152,7 @@ class Game {
       if (key === 'escape') {
         const dd = document.getElementById('game-dropdown');
         if (dd && !dd.classList.contains('hidden')) { dd.classList.add('hidden'); return; }
-        for (const id of ['rules-overlay','log-overlay','shortcuts-overlay','stats-overlay','prefs-overlay','ragequit-overlay','bid-overlay']) {
+        for (const id of ['rules-overlay','log-overlay','shortcuts-overlay','stats-overlay','prefs-overlay','ragequit-overlay']) {
           const el = document.getElementById(id);
           if (el && !el.classList.contains('hidden')) { el.classList.add('hidden'); return; }
         }
