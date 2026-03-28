@@ -928,7 +928,27 @@ class Game {
     }
 
     trackStat('gamesPlayed');
-    if (humanWon) { trackStat('gamesWon'); trackStat('winStreak'); addXP(50); spawnConfetti(); }
+    if (humanWon) {
+      trackStat('gamesWon'); trackStat('winStreak'); addXP(50);
+      // Victory celebration scales with margin
+      let margin;
+      if (this.teamMode && this.teams) {
+        margin = this.teams[0].score - this.teams[1].score;
+      } else {
+        const scores = this.players.map(p => p.score || 0).sort((a, b) => b - a);
+        margin = scores[0] - (scores[1] || 0);
+      }
+      if (margin > 200) {
+        // Blowout — double confetti + extra particles
+        spawnConfetti(); spawnConfetti();
+        spawnParticles(window.innerWidth / 2, window.innerHeight / 2, 30, 'particle-gold');
+      } else if (margin < 50) {
+        // Close game — subtle gold particles only
+        spawnParticles(window.innerWidth / 2, window.innerHeight / 2, 20, 'particle-gold');
+      } else {
+        spawnConfetti();
+      }
+    }
     else { trackStat('loseStreak'); addXP(10); }
     // Track head-to-head vs each AI
     for (const p of this.players) {
@@ -1059,11 +1079,34 @@ class Game {
         infoSection.innerHTML = `
           <img class="human-avatar" src="${human.avatar}" alt="${escHTML(human.name)}" style="width:40px;height:40px;border-radius:50%;border:2px solid rgba(74,144,217,0.4);">
           <div class="human-info-text">
-            <span class="human-name">${escHTML(human.name)}</span>
+            <span class="human-name" id="human-name-label" style="cursor:pointer;" title="Double-click to edit">${escHTML(human.name)}</span>
             <span class="human-record">${rec.wins}W ${rec.losses}L</span>
             ${human.hasBid ? `<span style="font-size:0.7rem;color:${human.nilBusted ? '#e04a3a' : '#4a90d9'};font-weight:700;">${human.blindNil ? '🙈 Blind Nil' : human.bid === 0 ? '🎯 Nil' : 'Bid: ' + human.bid}${human.nilBusted ? ' BUST!' : ''} | Won: ${human.tricks}</span>` : ''}
           </div>
         `;
+
+        // Double-click to edit name in-game
+        const nameLabel = humanInfo.querySelector('#human-name-label');
+        if (nameLabel && !nameLabel._dblBound) {
+          nameLabel._dblBound = true;
+          nameLabel.addEventListener('dblclick', () => {
+            const current = getPlayerName();
+            const input = document.createElement('input');
+            input.type = 'text'; input.className = 'name-edit';
+            input.value = current; input.maxLength = 12;
+            input.style.cssText = 'width:100px;font-size:0.85rem;padding:2px 6px;';
+            nameLabel.replaceWith(input);
+            input.focus(); input.select();
+            const finish = () => {
+              const newName = input.value.trim() || _tUI('playerName');
+              setPlayerName(newName);
+              if (this.players && this.players[0]) this.players[0].name = newName;
+              this._updateUI();
+            };
+            input.addEventListener('blur', finish);
+            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); finish(); } });
+          });
+        }
       }
     }
   }

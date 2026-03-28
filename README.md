@@ -2,6 +2,11 @@
 
 A feature-rich, zero-dependency browser Spades card game. Pure HTML/CSS/JS — no build step, no server, no frameworks.
 
+![MIT License](https://img.shields.io/badge/License-MIT-green)
+![Pure JS](https://img.shields.io/badge/Stack-HTML%2FCSS%2FJS-blue)
+![No Dependencies](https://img.shields.io/badge/Dependencies-None-orange)
+![Languages](https://img.shields.io/badge/Languages-EN%20ES%20AR%20ZH-purple)
+
 ## ▶ [Play Now](https://keithadler.github.io/spades27/)
 
 No install needed. Just click the link above or open `index.html` in any browser.
