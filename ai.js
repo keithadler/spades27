@@ -220,16 +220,16 @@ class AI {
       return Math.max(1, Math.min(bid, 7));
     }
 
-    // ----- MEDIUM / HARD: Conservative trick counting -----
+    // ----- MEDIUM / HARD: Balanced trick counting -----
     let tricks = 0;
 
-    // Spade tricks — top-down, only count sure winners
+    // Spade tricks — top-down
     const spadesSorted = [...spades].sort((a, b) => b.value - a.value);
     for (let i = 0; i < spadesSorted.length && i < 5; i++) {
       if (spadesSorted[i].value >= 14 - i) {
-        tricks += 1;       // A, K+A, Q+AK, etc.
+        tricks += 1;       // A, K+A, Q+AK — sure winners
       } else if (spadesSorted[i].value >= 11 && i < 2) {
-        tricks += 0.4;     // J or Q without full support
+        tricks += 0.5;     // J or Q near top — probable winner
       }
     }
 
@@ -240,32 +240,34 @@ class AI {
       if (suited.length === 0) {
         // Void — ruffing potential with spare spades
         const spareSpades = Math.max(0, spades.length - Math.ceil(tricks));
-        if (spareSpades > 0) tricks += 0.5;
+        if (spareSpades > 0) tricks += 0.6;
         continue;
       }
 
-      // Ace: 0.85 (might get ruffed in a 4-player game)
-      if (suited[0].value === 14) tricks += 0.85;
+      // Ace: 0.95 (very reliable, ruffing is rare in early tricks)
+      if (suited[0].value === 14) tricks += 0.95;
 
-      // King: needs ace gone AND 3+ length for protection
+      // King: depends on ace support and length
       const hasAce = suited[0].value === 14;
       const hasKing = suited.some(c => c.value === 13);
-      if (hasKing && suited.length >= 3) tricks += hasAce ? 0.6 : 0.35;
+      if (hasKing && suited.length >= 2) tricks += hasAce ? 0.7 : 0.45;
 
-      // Queen: needs AK gone AND 4+ length
+      // Queen: needs some support
       const hasQueen = suited.some(c => c.value === 12);
-      if (hasQueen && suited.length >= 4 && hasAce && hasKing) tricks += 0.3;
+      if (hasQueen && suited.length >= 3) tricks += (hasAce || hasKing) ? 0.4 : 0.2;
 
-      // Singleton ruffing (not doubleton — too slow)
-      if (suited.length === 1 && spades.length > Math.ceil(tricks)) tricks += 0.3;
+      // Singleton ruffing
+      if (suited.length === 1 && spades.length > Math.ceil(tricks)) tricks += 0.35;
+      // Doubleton: slight ruffing potential
+      if (suited.length === 2 && spades.length > Math.ceil(tricks) + 1) tricks += 0.15;
     }
 
-    // FLOOR — always prefer underbidding
+    // FLOOR — prefer underbidding by a fraction, not a whole trick
     let bid = Math.floor(tricks);
 
-    // Medium: 30% chance to underbid by 1
+    // Medium: 20% chance to underbid by 1 (was 30% — too aggressive)
     if (this.difficulty === 'medium') {
-      if (Math.random() > 0.7) bid -= 1;
+      if (Math.random() > 0.8) bid -= 1;
     }
 
     // Bag-aware: if team has 7+ bags, bid 1 less
