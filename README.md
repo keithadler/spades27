@@ -14,17 +14,17 @@ python3 -m http.server 8080
 
 ## Features
 
-**Gameplay** — Full Spades rules with 2v2 partnership or cutthroat (FFA) modes, bidding with Nil and Blind Nil support, trick-taking with spades as trump, "breaking spades" rule, bag tracking with 10-bag penalty, 3 AI difficulty levels, 5 AI personality types, and keyboard shortcuts.
+**Gameplay** — Full Spades rules with 2v2 partnership or cutthroat (FFA) modes, bidding with Nil and Blind Nil support, trick-taking with spades as trump, "breaking spades" rule, bag tracking with 10-bag penalty, 3 AI difficulty levels, 5 AI personality types, save/resume games, and keyboard shortcuts.
 
-**AI** — 7-factor heuristic scoring engine with 3 difficulty levels. Easy plays like a beginner (leads high, wastes winners). Medium uses full heuristics with weighted randomness. Hard plays optimally with partner awareness, nil protection/busting, and bag warfare. Each opponent gets a random generation (Gen Z, Millennial, Gen X, Boomer) with culturally authentic Spades trash talk. 5 personalities: Aggressive, Defensive, Chaotic, Calculated, Bully.
+**AI** — 7-factor heuristic scoring engine with 3 difficulty levels. Easy plays like a beginner (leads high, wastes winners). Medium uses full heuristics with weighted randomness (top 3, 5:3:1 odds). Hard plays optimally with partner awareness, nil protection/busting, and bag warfare. Nil protection overrides all other priorities — your partner will always cover your nil. Each opponent gets a random generation (Gen Z, Millennial, Gen X, Boomer) with culturally authentic Spades trash talk. 5 personalities: Aggressive, Defensive, Chaotic, Calculated, Bully.
 
-**Visuals** — Cinematic deal animation with shuffle, 3-2-1 countdown, round announcements with avatars, card fly-in animations, screen shake on trick wins and spades broken, particle effects, score popups, combo counters, nil bust banners, floating turn arrow, ambient dust motes, time-of-day lighting, haptic feedback, and victory confetti.
+**Visuals** — Cinematic deal animation with shuffle, 3-2-1 countdown, round announcements over the table felt, card fly-in animations, screen shake on trick wins and spades broken, particle effects, score popups, combo counters, nil bust banners, floating turn arrow, ambient dust motes, time-of-day lighting, haptic feedback, 6 card skins, and victory confetti.
 
-**i18n** — English, Spanish, Arabic (full RTL), Chinese. Auto-detects browser language. Language picker on menu and in preferences. Full UI translations, translated rules, culturally authentic names/cities/trash talk per language.
+**i18n** — English, Spanish, Arabic (full RTL), Chinese. Auto-detects browser language. First-visit language picker. Language selector on menu and in preferences. Full UI translations, translated rules, culturally authentic names/cities/trash talk per language.
 
-**Progression** — XP leveling, 13 achievements (First Victory, Nil Master, Blind Faith, Boston, Perfect Bid, Clean Game, and more), lifetime stats (games, tricks, bags, nils attempted/succeeded, win streaks, play time).
+**Progression** — XP leveling, 13 achievements (First Victory, Nil Master, Blind Faith, Boston, Perfect Bid, Clean Game, and more), lifetime stats, head-to-head records vs each AI opponent.
 
-**Quality of Life** — Dark/light theme, 6 table felt themes, game speed control (Fast/Normal/Slow), AI trash talk frequency slider (Off/Low/Normal/Max), colorblind mode, prefers-reduced-motion support.
+**Quality of Life** — Save/resume games, dark/light theme, 6 table felt themes, 6 card skins (Classic, Midnight, Gold, Neon, Wood, Marble), game speed control (Fast/Normal/Slow), AI trash talk frequency slider (Off/Low/Normal/Max), interactive 9-step tutorial, colorblind mode, prefers-reduced-motion support.
 
 **Mobile** — Responsive across phones, tablets, and desktop. PWA installable. Touch support, safe area support for notched devices.
 
@@ -82,14 +82,15 @@ Bidding uses conservative trick counting (floor, not round) with bag-aware adjus
 ├── locales.js       — i18n: 4 languages, phrases, names, UI strings, rules
 ├── card.js          — Card class, deck creation, shuffle, sort
 ├── player.js        — Player model (human + AI), nil/blindNil tracking
-├── ai.js            — AI engine: 7-factor scoring, 3 difficulties (~550 lines)
+├── ai.js            — AI engine: 7-factor scoring, 3 difficulties (~560 lines)
 ├── audio.js         — Synthesized SFX + dynamic jazz music engine
-├── stats.js         — Win/loss records, 13 achievements, XP/leveling
-├── ui-helpers.js    — Avatars, themes, personalities, particles, ambient FX
-├── game.js          — Main game controller (~1600 lines)
+├── stats.js         — Win/loss records, 13 achievements, XP, head-to-head
+├── ui-helpers.js    — Avatars, themes, skins, tutorial, personalities, particles
+├── game.js          — Main game controller with save/resume (~1700 lines)
 ├── game-fx.js       — Visual effects: deal animation, popups, shake, particles
 ├── test.js          — Automated test suite (48 tests)
 ├── manifest.json    — PWA manifest
+├── CONTRIBUTING.md  — Contribution guidelines
 ├── LICENSE          — MIT License
 └── README.md
 ```
@@ -98,7 +99,7 @@ Bidding uses conservative trick counting (floor, not round) with bag-aware adjus
 
 - **Rendering** — DOM-based card rendering with CSS animations
 - **Audio** — Web Audio API oscillator synthesis (no audio files)
-- **Persistence** — localStorage for stats, achievements, settings
+- **Persistence** — localStorage for stats, achievements, settings, save games
 - **Avatars** — DiceBear Open Peeps (CC BY 4.0)
 - **Font** — Inter (SIL Open Font License 1.1)
 
