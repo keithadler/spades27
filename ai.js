@@ -363,6 +363,10 @@ class AI {
       let score = 0;
       const wouldWin = this._wouldWin(card, trick, leadSuit);
 
+      // Determine if we should be in duck mode:
+      // Duck when I've made MY bid OR when the TEAM has made the combined bid
+      const shouldDuck = iMadeBid || teamMadeBid;
+
       // ===== FACTOR 1: LEADING =====
       if (isLeading) {
         if (partnerIsNil && !isFFA) {
@@ -376,8 +380,8 @@ class AI {
           } else {
             score += card.value >= 12 ? 4 : -5;
           }
-        } else if (iNeedTricks) {
-          // Aggressive — lead winners
+        } else if (iNeedTricks && !teamMadeBid) {
+          // Aggressive — lead winners (but not if team already done)
           if (!card.isSpade) {
             score += card.value * 0.5;
             if (card.value === 14) score += 8;
@@ -387,7 +391,7 @@ class AI {
             const n = hand.filter(c => c.isSpade).length;
             score += (n >= 4 && card.value >= 12) ? 5 : -4;
           }
-        } else if (iMadeBid) {
+        } else if (shouldDuck) {
           // DUCK MODE — lead absolute lowest
           score += (14 - card.value) * 2.0;
           if (card.value >= 13) score -= 15;
@@ -401,11 +405,11 @@ class AI {
         if (partnerIsNil && !isFFA) {
           score += 14; // Always win to protect nil partner
           score -= card.value * 0.2;
-        } else if (iNeedTricks) {
+        } else if (iNeedTricks && !teamMadeBid) {
           score += 10;
           score -= card.value * 0.3; // Win cheaply
           if (card.isSpade && leadSuit !== 'spades') score -= 4;
-        } else if (iMadeBid) {
+        } else if (shouldDuck) {
           // HARD DUCK — almost never win
           score -= 15;
           if (card.isSpade) score -= 10;
@@ -421,7 +425,7 @@ class AI {
 
       // ===== FACTOR 3: FOLLOWING — CAN'T WIN =====
       else {
-        if (iMadeBid && !partnerIsNil) {
+        if (shouldDuck && !partnerIsNil) {
           // Dump HIGH cards and spades to avoid future wins
           score += card.value * 0.6;
           if (card.isSpade) score += 4;
