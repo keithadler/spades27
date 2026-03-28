@@ -393,7 +393,8 @@ class Game {
         this._hideThinking();
         const partnerIdx = (playerIdx + 2) % 4;
         const partnerBid = this.players[partnerIdx].bid;
-        const bid = player.ai.chooseBid(player.hand, partnerBid, {});
+        const teamBags = this.teamMode && this.teams ? this.teams[player.team].bags : 0;
+        const bid = player.ai.chooseBid(player.hand, partnerBid, { teamBags });
         player.bid = bid;
         player.blindNil = false;
         if (this.sfx) { bid === 0 ? this.sfx.nilBid() : this.sfx.bid(); }

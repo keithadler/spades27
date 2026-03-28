@@ -227,87 +227,77 @@ class AI {
    */
   chooseBid(hand, partnerBid, ctx) {
     const spades = hand.filter(c => c.isSpade);
-    const highSpades = spades.filter(c => c.value >= 12).length; // Q, K, A of spades
-    const aces = hand.filter(c => c.value === 14).length;        // All aces
-    const kings = hand.filter(c => c.value === 13 && !c.isSpade).length; // Non-spade kings
+    const highSpades = spades.filter(c => c.value >= 12).length;
+    const aces = hand.filter(c => c.value === 14).length;
+    const kings = hand.filter(c => c.value === 13 && !c.isSpade).length;
 
-    // ----- EASY: Simple counting with randomness -----
-    // Just count obvious winners: aces + high spades + half the kings.
-    // Add 0 or 1 randomly. Cap at 7 to avoid crazy overbids.
     if (this.difficulty === 'easy') {
       let bid = aces + highSpades + Math.floor(kings * 0.5);
       bid += Math.floor(Math.random() * 2);
       return Math.max(1, Math.min(bid, 7));
     }
 
-    // ----- MEDIUM / HARD: Sophisticated trick counting -----
+    // ----- MEDIUM / HARD: Conservative trick counting -----
+    // KEY INSIGHT: Underbidding by 1 costs 1 bag (+1 point).
+    // Overbidding by 1 costs -bid*10 points (getting set).
+    // So we UNDERCOUNT slightly — far better to win 1 extra
+    // trick (bag) than to miss your bid entirely.
     let tricks = 0;
 
     // --- Source 1: Spade tricks ---
-    // Sort spades highest-first and count from the top.
-    // A♠ (value 14) at position 0 → guaranteed winner (14 >= 14-0)
-    // K♠ (value 13) at position 1 → winner if we have A♠ too (13 >= 14-1)
-    // Q♠ (value 12) at position 2 → winner if we have A♠ and K♠ (12 >= 14-2)
-    // Lower spades get partial credit — they MIGHT win depending on
-    // what opponents hold.
+    // Only count spades we're CONFIDENT will win.
     const spadesSorted = spades.sort((a, b) => b.value - a.value);
     for (let i = 0; i < spadesSorted.length && i < 4; i++) {
       if (spadesSorted[i].value >= 14 - i) {
-        tricks += 1;       // Sure winner (top of the spade hierarchy)
+        tricks += 1;       // A, K with A, Q with AK — sure winners
       } else if (spadesSorted[i].value >= 12 && i < 2) {
-        tricks += 0.7;     // Probable winner (Q♠ or J♠ near the top)
+        tricks += 0.5;     // Reduced from 0.7 — uncertain
       }
     }
 
     // --- Source 2: Side suit winners ---
-    // For each non-spade suit, count how many tricks our high cards
-    // are likely to win based on their rank AND how many cards we
-    // hold in that suit (length).
     for (const suit of ['hearts', 'diamonds', 'clubs']) {
       const suited = hand.filter(c => c.suit === suit).sort((a, b) => b.value - a.value);
 
       if (suited.length === 0) {
-        // VOID in this suit! We can RUFF (play a spade) when this
-        // suit is led. Each void is worth ~1 extra trick if we have
-        // spades to spare beyond what we already counted.
-        tricks += Math.min(1, Math.max(0, spades.length - tricks));
+        // Void — ruffing, but only with SPARE spades
+        const spareSpades = Math.max(0, spades.length - Math.ceil(tricks));
+        if (spareSpades > 0) tricks += 0.5;
         continue;
       }
 
-      // Ace = 1 trick (almost always wins when led, unless someone ruffs)
-      if (suited[0].value === 14) tricks += 1;
+      // Ace = 0.9 (not 1.0 — might get ruffed)
+      if (suited[0].value === 14) tricks += 0.9;
 
-      // King with 2+ cards in suit = 0.7 tricks
-      // (The ace probably gets played on an earlier trick, so our
-      // king survives. With only 1 card, we play the king immediately
-      // and the ace is still out there.)
-      if (suited.length >= 2 && suited[1].value === 13) tricks += 0.7;
+      // King needs 3+ length to be safe (was 2+)
+      if (suited.length >= 3 && suited[1].value === 13) tricks += 0.5;
 
-      // Queen with 3+ cards = 0.4 tricks (needs both A and K gone first)
-      if (suited.length >= 3 && suited[2].value === 12) tricks += 0.4;
+      // Queen needs 4+ length (was 3+)
+      if (suited.length >= 4 && suited[2].value === 12) tricks += 0.3;
 
-      // Short suits (1-2 cards) = ruffing potential
-      // After 1-2 tricks in this suit, we'll be void and can trump.
-      if (suited.length <= 2 && spades.length > 0) tricks += 0.3;
+      // Only singleton ruffing potential (not doubleton)
+      if (suited.length === 1 && spades.length > Math.ceil(tricks)) tricks += 0.3;
     }
 
-    let bid = Math.round(tricks);
+    // FLOOR not ROUND — prefer underbidding
+    let bid = Math.floor(tricks);
 
-    // --- Medium adds randomness: ±1 from the calculated bid ---
-    // This makes medium AI good but not perfect — it occasionally
-    // overbids or underbids by 1, which feels more human.
+    // Medium: occasionally underbid, never randomly overbid
     if (this.difficulty === 'medium') {
-      bid += Math.random() > 0.5 ? 0 : (Math.random() > 0.5 ? 1 : -1);
+      if (Math.random() > 0.7) bid -= 1;
     }
 
-    // --- Team overbid protection ---
-    // If partner already bid and our combined total exceeds 11 (out of
-    // 13 possible tricks), scale back. Bidding 12+ as a team means
-    // you need to win almost every trick — very risky.
+    // --- Bag-aware bidding ---
+    // Close to 10-bag penalty? Bid 1 less as a buffer.
+    if (ctx && ctx.teamBags >= 7 && bid > 2) {
+      bid -= 1;
+    }
+
+    // --- Team overbid protection (tighter: cap at 10) ---
     if (partnerBid >= 0) {
       const teamTotal = partnerBid + bid;
-      if (teamTotal > 11 && this.difficulty !== 'easy') {
-        bid = Math.max(1, 11 - partnerBid);
+      if (teamTotal > 10 && this.difficulty !== 'easy') {
+        bid = Math.max(1, 10 - partnerBid);
       }
     }
 
@@ -453,9 +443,10 @@ class AI {
             score -= 5; // Don't lead spades — partner can't win those easily
           }
         } else {
-          // Team made bid — lead low to avoid bags
-          score += (14 - card.value) * 0.5;
-          if (card.isSpade) score -= 5;
+          // Team made bid — lead LOW to avoid bags, never lead winners
+          score += (14 - card.value) * 1.2;
+          if (card.value >= 13) score -= 10; // Never lead aces/kings
+          if (card.isSpade) score -= 8;
         }
       }
 
@@ -494,8 +485,8 @@ class AI {
           }
         } else {
           // TEAM MADE BID — extra tricks are BAGS. Avoid winning!
-          score -= 8;
-          if (card.isSpade) score -= 5;
+          score -= 15;
+          if (card.isSpade) score -= 8;
         }
       }
 
