@@ -1,5 +1,8 @@
 /**
  * @file game-fx.js — Visual effects, animations, and haptics for Spades.
+ * @author Keith Adler
+ * @copyright 2026 Keith Adler. MIT License.
+ *
  * Adds cinematic polish: deal animations, score popups, screen shake,
  * combo counters, round announcements, ambient effects, and more.
  * @author Keith Adler

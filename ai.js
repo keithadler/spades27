@@ -1,33 +1,199 @@
 /**
- * @file ai.js — AI opponent logic for Spades.
+ * @file ai.js — AI opponent logic for Spades 27.
  * @author Keith Adler
  * @copyright 2026 Keith Adler. MIT License.
  *
- * THREE DIFFICULTY LEVELS:
+ * HOW THE AI WORKS (plain English)
+ * ================================
  *
- *   EASY   — Bids by counting aces + high spades. Plays like a beginner:
- *            leads highest cards (wastes winners), 30% random. No strategy.
+ * The AI has two jobs: BIDDING (predicting how many tricks it will
+ * win before the round starts) and PLAYING (choosing which card to
+ * play on each of the 13 tricks). Both get smarter with difficulty.
  *
- *   MEDIUM — Full bidding/play heuristics. Picks from top 3 scored cards
- *            with weighted randomness (5:3:1). Good but makes mistakes.
  *
- *   HARD   — Optimal heuristic play. Always picks the best-scored card.
- *            Full partner awareness, nil protection/busting, bag warfare.
+ * DIFFICULTY LEVELS
+ * -----------------
  *
- * BIDDING: Conservative trick counting with Math.floor (prefers underbid).
- *   Aces=0.85, Kings need 3+ length, Queens need 4+ with AK support.
- *   Bag-aware (bids -1 at 7+ bags), team cap at 10, nil at ≤0.5 tricks.
+ *   EASY — Bids by counting aces and high spades, adds some randomness.
+ *          Plays like a real beginner: always leads their highest card
+ *          (wasting winners early), follows with the highest card of
+ *          the lead suit, and 30% of the time picks randomly. No
+ *          awareness of bags, partner, or strategy. Feels like playing
+ *          against someone who just learned the rules.
  *
- * CARD PLAY: 7-factor scoring system:
- *   F1: Leading — nil-protect / aggressive / hard-duck / bag-avoid
- *   F2: Following (can win) — nil-protect / win cheaply / hard-duck
- *   F3: Following (can't win) — dump high when done, save high when not
- *   F4: Partner awareness — don't overtake partner, save nil partner
- *   F5: Nil protection — always win when partner bid nil
- *   F6: Nil busting — lead low, duck under winning nil bidder
- *   F7: Bag warfare — force bags on opponents, avoid own bags
+ *   MEDIUM — Uses the full bidding algorithm but occasionally underbids
+ *            by 1 (30% chance). Scores every legal play with the full
+ *            7-factor heuristic system, then picks from the top 3
+ *            scored cards with weighted randomness (5:3:1 odds). This
+ *            means it usually makes the right play but sometimes picks
+ *            the 2nd or 3rd best option. Good enough to be competitive
+ *            but makes enough mistakes to feel beatable.
  *
- * FFA/CUTTHROAT: All partner/team logic disabled. Pure individual play.
+ *   HARD — Full bidding algorithm with zero randomness. Always picks
+ *          the single highest-scoring card. Full partner awareness,
+ *          nil protection, nil busting, bag avoidance, and bag warfare.
+ *          Plays like an experienced Spades player.
+ *
+ *
+ * =========================================================================
+ * BIDDING — "How many tricks will I win this round?"
+ * =========================================================================
+ *
+ * Bidding is the most important decision in Spades. The consequences:
+ *   - Make your bid → +bid×10 points (great!)
+ *   - Miss your bid → -bid×10 points (disaster!)
+ *   - Win extra tricks → +1 each, but they're "bags" (10 bags = -100)
+ *
+ * Because missing your bid is 10x worse than getting a bag, the AI
+ * deliberately UNDERCOUNTS its expected tricks. It uses Math.floor()
+ * instead of Math.round(), so 3.8 expected tricks becomes a bid of 3,
+ * not 4. One extra bag (+1 point) is far better than getting set (-30).
+ *
+ * The AI counts expected tricks from three sources:
+ *
+ *   1. SPADE TRICKS (trump cards)
+ *      Spades beat everything, so high spades are near-guaranteed wins.
+ *      The AI sorts its spades highest-first and counts top-down:
+ *
+ *        A♠ at position 0 → 1.0 tricks (always wins, it's the best card)
+ *        K♠ at position 1 → 1.0 tricks (wins because A♠ draws out
+ *            opponents' aces first, so K♠ is safe)
+ *        Q♠ at position 2 → 1.0 tricks (A♠ and K♠ clear the way)
+ *        J♠ or Q♠ without full support → 0.4 tricks (might win, risky)
+ *
+ *      Key insight: K♠ is worth 1.0 if you ALSO have A♠ (because your
+ *      ace draws out their ace first). But K♠ alone is only worth ~0.4
+ *      because someone else might have A♠.
+ *
+ *   2. SIDE SUIT WINNERS (non-spade high cards)
+ *      Aces and kings of hearts/diamonds/clubs can win tricks too, but
+ *      they're less reliable because opponents might be void and trump.
+ *
+ *        A♥ = 0.85 tricks (usually wins, but ~15% chance someone ruffs)
+ *        K♥ with A♥ and 3+ hearts = 0.6 tricks (ace clears the way,
+ *            length protects the king from being played too early)
+ *        K♥ without ace, 3+ hearts = 0.35 tricks (risky — ace is out)
+ *        Q♥ with A♥, K♥, and 4+ hearts = 0.3 tricks (needs both gone)
+ *
+ *      Why does SUIT LENGTH matter? If you have K♥ but only 1 heart,
+ *      you must play it on the first heart trick — and the A♥ is
+ *      probably still out there, beating your king. With 4 hearts,
+ *      the ace gets played on an earlier trick, so your king survives.
+ *
+ *   3. RUFFING POTENTIAL (void suits)
+ *      If you have ZERO cards in a suit, you can play a spade when
+ *      that suit is led — this is called "ruffing" or "trumping."
+ *      Each void is worth ~0.5 extra tricks IF you have spare spades
+ *      (spades beyond what you already counted as spade tricks).
+ *
+ *      Singletons (1 card in a suit) get 0.3 credit because after
+ *      one trick in that suit, you'll be void and can ruff.
+ *
+ * TEAM AWARENESS IN BIDDING:
+ *   If your partner already bid, the AI caps the team total at 10.
+ *   Bidding 11+ as a team means you need almost every trick — too risky.
+ *
+ * BAG-AWARE BIDDING:
+ *   If the team has 7+ bags (close to the -100 penalty at 10), the AI
+ *   bids 1 less as a safety buffer.
+ *
+ * NIL BIDS (Hard only):
+ *   If the hand is truly terrible (≤0.5 expected tricks, at most 1
+ *   spade, no card above 9), bidding Nil is better than bidding 1.
+ *   Nil success = +100, failure = -100. Worth the gamble with garbage.
+ *
+ *
+ * =========================================================================
+ * CARD PLAY — "Which card should I play?"
+ * =========================================================================
+ *
+ * Every legal card gets a SCORE. Higher = better play. The AI picks
+ * the highest-scoring card (Hard) or weighted-random from top 3 (Medium).
+ *
+ * The score comes from 7 STRATEGY FACTORS:
+ *
+ *   FACTOR 1: LEADING (starting a new trick)
+ *   ─────────────────────────────────────────
+ *   You choose the suit everyone must follow. Four modes:
+ *
+ *   a) PARTNER BID NIL → Lead HIGH (+14 for aces, +10 for kings).
+ *      Win the trick yourself so partner doesn't accidentally win.
+ *      Prefer long suits for sustained control.
+ *
+ *   b) I NEED TRICKS → Lead aggressively. Aces first (+8), kings (+3),
+ *      long suits (+3). Draw trump with high spades if you have 4+.
+ *
+ *   c) I MADE MY BID → HARD DUCK. Lead absolute lowest cards (2.0x
+ *      low preference). Never lead aces (-15), kings (-15), face
+ *      cards (-6), or spades (-12). Every trick is now a bag.
+ *
+ *   d) (Same as c but for team-made-bid in team mode)
+ *
+ *   FACTOR 2: FOLLOWING — I CAN WIN THIS TRICK
+ *   ────────────────────────────────────────────
+ *   a) PARTNER BID NIL → Always win (+14). Protect partner.
+ *
+ *   b) I NEED TRICKS → Win it (+10), but cheaply. Prefer lower
+ *      winning cards (-0.3 per rank). Don't trump unnecessarily (-4).
+ *
+ *   c) I MADE MY BID → HARD DUCK (-15 for winning, -10 for spades).
+ *      Only exception: you're the last player, partner already played
+ *      and is losing, partner needs tricks, and there aren't enough
+ *      tricks left. Then reluctantly help (+18 override).
+ *
+ *   FACTOR 3: FOLLOWING — I CAN'T WIN THIS TRICK
+ *   ──────────────────────────────────────────────
+ *   Nothing you play will take this trick. What to throw away?
+ *
+ *   a) I MADE MY BID → Dump HIGH cards (+0.6 per rank) and spades (+4).
+ *      Get rid of future winners so you can't accidentally win later.
+ *
+ *   b) I NEED TRICKS → Dump LOW cards (+0.5 per low rank). Save high
+ *      cards and spades (+2) for tricks where they matter.
+ *
+ *   FACTOR 4: PARTNER AWARENESS (Hard only, team mode)
+ *   ──────────────────────────────────────────────────
+ *   Uses actual trick position (not assumed index) to find partner's card.
+ *
+ *   - Partner winning + partner bid nil → MUST overtake (+20). Save nil.
+ *   - Partner winning + I don't need tricks → Play lowest (1.2x low pref)
+ *   - Partner winning + I need tricks → Still play low (0.5x), save cards
+ *
+ *   FACTOR 5: NIL PROTECTION (team mode)
+ *   ─────────────────────────────────────
+ *   If partner bid Nil, prefer winning (+10) to take tricks away from them.
+ *
+ *   FACTOR 6: NIL BUSTING
+ *   ──────────────────────
+ *   If an OPPONENT bid Nil and hasn't busted:
+ *   - Leading: Lead LOW (1.2x) in short suits (+5/+4). Avoid aces (-8).
+ *     Low spades (+6) can catch nil bidders with high spades.
+ *   - Following: If nil bidder is winning, duck UNDER them (+15 for not
+ *     winning, -12 for winning). Let them take the trick = bust!
+ *
+ *   FACTOR 7: BAG WARFARE (team mode)
+ *   ──────────────────────────────────
+ *   - Opponents made their bid → Force bags. Lead high (+6), win tricks (+4).
+ *   - Our team made bid → Extra bag avoidance (-5 for winning).
+ *
+ *
+ * FFA / CUTTHROAT MODE
+ * ────────────────────
+ * All partner logic (Factors 4, 5, 7) is disabled. No nil protection,
+ * no partner awareness, no team bag tracking. Pure individual play:
+ * win your bid, avoid your own bags, bust opponent nils.
+ *
+ *
+ * TRICK WINNER RULES
+ * ──────────────────
+ * 1. If any SPADE was played → highest spade wins (trump).
+ * 2. If no spades → highest card of the LEAD SUIT wins.
+ * 3. Off-suit non-spade cards can NEVER win.
+ *
+ * Example: Lead 7♥. Cards: 7♥, K♦, 3♠, A♥
+ *   K♦ can't win (wrong suit, not spade)
+ *   A♥ would win (highest heart) BUT 3♠ trumps it.
+ *   Winner: 3♠ — even the lowest spade beats the highest non-spade.
  *
  * @dependency card.js ({@link Card})
  */
