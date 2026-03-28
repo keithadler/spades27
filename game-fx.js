@@ -108,32 +108,30 @@ Object.assign(Game.prototype, {
   // =========================================================================
 
   _showRoundAnnouncement(callback) {
-    const overlay = document.getElementById('message-overlay');
-    if (!overlay) { callback(); return; }
-    overlay.classList.remove('hidden');
-    overlay.style.background = 'rgba(0,0,0,0.3)'; // Transparent — show table behind
-
     const dealerName = escHTML(this.players[this.dealer].name);
     const leaderIdx = (this.dealer + 1) % 4;
     const leaderName = escHTML(this.players[leaderIdx].name);
 
-    overlay.innerHTML = `
+    // Float directly over the board — no overlay, no background
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;pointer-events:none;';
+    el.innerHTML = `
       <div style="text-align:center;animation:announceIn 0.5s ease-out forwards;">
-        <div style="font-size:1.2rem;font-weight:700;letter-spacing:12px;color:rgba(255,255,255,0.4);text-transform:uppercase;opacity:0;animation:raSlideDown 0.5s ease-out 0.1s forwards;">ROUND</div>
-        <div style="font-size:8rem;font-weight:900;line-height:1;background:linear-gradient(180deg,#fff 10%,#4a90d9 40%,#2a60a0 70%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 40px rgba(74,144,217,0.5));opacity:0;animation:raNumberPop 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.3s forwards;">${this._roundNum}</div>
+        <div style="font-size:1.2rem;font-weight:700;letter-spacing:12px;color:rgba(255,255,255,0.5);text-transform:uppercase;text-shadow:0 2px 8px rgba(0,0,0,0.6);opacity:0;animation:raSlideDown 0.5s ease-out 0.1s forwards;">ROUND</div>
+        <div style="font-size:8rem;font-weight:900;line-height:1;background:linear-gradient(180deg,#fff 10%,#4a90d9 40%,#2a60a0 70%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 40px rgba(74,144,217,0.5)) drop-shadow(0 4px 12px rgba(0,0,0,0.8));opacity:0;animation:raNumberPop 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.3s forwards;">${this._roundNum}</div>
         <div style="width:120px;height:2px;margin:12px auto 20px;background:linear-gradient(90deg,transparent,#4a90d9,transparent);opacity:0;animation:raFadeIn 0.4s ease-out 0.7s forwards;"></div>
         <div style="display:flex;align-items:center;justify-content:center;gap:16px;opacity:0;animation:raSlideUp 0.5s ease-out 0.8s forwards;">
           <img src="${this.players[this.dealer].avatar}" style="width:56px;height:56px;border-radius:50%;border:3px solid rgba(74,144,217,0.5);box-shadow:0 4px 16px rgba(0,0,0,0.5);">
-          <div style="text-align:left;">
-            <div style="font-size:0.8rem;opacity:0.5;">Dealer</div>
+          <div style="text-align:left;text-shadow:0 2px 8px rgba(0,0,0,0.7);">
+            <div style="font-size:0.8rem;opacity:0.6;">Dealer</div>
             <div style="font-weight:800;font-size:1.1rem;">${dealerName}</div>
           </div>
         </div>
-        <div style="margin-top:12px;font-size:0.9rem;opacity:0;animation:raFadeIn 0.4s ease-out 1.2s forwards;color:rgba(255,255,255,0.6);">${leaderName} leads first</div>
+        <div style="margin-top:12px;font-size:0.9rem;opacity:0;animation:raFadeIn 0.4s ease-out 1.2s forwards;color:rgba(255,255,255,0.7);text-shadow:0 2px 6px rgba(0,0,0,0.6);">${leaderName} leads first</div>
       </div>
     `;
+    document.body.appendChild(el);
 
-    // Particles behind the number
     setTimeout(() => spawnParticles(window.innerWidth / 2, window.innerHeight * 0.35, 20, 'particle-gold'), 400);
 
     if (this.sfx) {
@@ -143,9 +141,7 @@ Object.assign(Game.prototype, {
     }
 
     setTimeout(() => {
-      overlay.classList.add('hidden');
-      overlay.innerHTML = '';
-      overlay.style.background = ''; // Reset to default
+      el.remove();
       callback();
     }, this._speedMs(2800));
   },
