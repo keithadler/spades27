@@ -608,3 +608,17 @@ body[data-theme="light"] .speech-bubble.bid-bubble {
   background: linear-gradient(145deg, rgba(74,144,217,0.15), rgba(255,255,255,0.95));
   border-color: rgba(74,144,217,0.4); color: #1a2e3e;
 }
+
+
+/* Tutorial */
+#tutorial-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; z-index:250; backdrop-filter:blur(12px); }
+#tutorial-overlay.hidden { display:none; }
+.tutorial-panel { background:linear-gradient(145deg,#252535,#151525); padding:36px 44px; border-radius:28px; max-width:520px; width:92%; border:1px solid rgba(255,255,255,0.06); box-shadow:0 30px 100px rgba(0,0,0,0.8); animation:msgEntrance 0.3s ease-out; position:relative; }
+.tutorial-panel strong { color:#4a90d9; }
+.tutorial-nav { display:flex; align-items:center; justify-content:space-between; margin-top:20px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.05); }
+.tut-btn-prev, .tut-btn-next { padding:10px 24px; border:none; border-radius:10px; font-weight:700; font-size:0.9rem; cursor:pointer; transition:all 0.2s; }
+.tut-btn-next { background:linear-gradient(145deg,#4a90d9,#2a60a0); color:#fff; box-shadow:0 4px 12px rgba(74,144,217,0.3); }
+.tut-btn-next:hover { transform:translateY(-1px); }
+.tut-btn-prev { background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.1); }
+.tut-btn-prev:disabled { opacity:0.3; cursor:not-allowed; }
+.tut-dots { display:flex; gap:6px; }

@@ -121,3 +121,17 @@ function trackPlayTime(seconds) {
   localStorage.setItem('spades_play_time', String(current + seconds));
 }
 function getPlayTime() { return parseInt(localStorage.getItem('spades_play_time') || '0'); }
+
+
+// Head-to-Head Records
+function getHeadToHead(name) {
+  const s = getGameStats();
+  return (s.headToHead && s.headToHead[name]) || { w: 0, l: 0 };
+}
+function trackHeadToHead(name, won) {
+  const s = getGameStats();
+  if (!s.headToHead) s.headToHead = {};
+  if (!s.headToHead[name]) s.headToHead[name] = { w: 0, l: 0 };
+  if (won) s.headToHead[name].w++; else s.headToHead[name].l++;
+  saveGameStats(s);
+}

@@ -71,6 +71,10 @@ class Game {
     });
 
     document.getElementById('start-game').addEventListener('click', () => this.startGame(false));
+    document.getElementById('resume-game').addEventListener('click', () => this._resumeGame());
+    // Show resume button if saved game exists
+    const resumeBtn = document.getElementById('resume-game');
+    if (resumeBtn && localStorage.getItem('spades_saved_game')) resumeBtn.style.display = '';
     document.getElementById('play-again').addEventListener('click', () => this.showScreen('menu-screen'));
     document.getElementById('rematch-btn').addEventListener('click', () => this.startGame(true));
 
@@ -199,6 +203,13 @@ class Game {
     this.sfx = new SFX();
     this._updateRoster();
     this._applyLocale();
+
+    // First-visit language picker (like dominoes)
+    if (!localStorage.getItem('spades_lang_chosen')) {
+      this._showFirstVisitLangPicker();
+    } else if (!localStorage.getItem('spades_tutorial_done')) {
+      showTutorial();
+    }
   }
 
   _getOption(groupId) {
@@ -301,6 +312,68 @@ class Game {
     this._updateXPBar();
     this.startRound();
   }
+
+  _saveGameState() {
+    if (!this.players || this.players.length === 0 || this.gameOver) return;
+    const state = {
+      players: this.players.map(p => ({
+        name: p.name, isHuman: p.isHuman, index: p.index, score: p.score || 0,
+        team: p.team, avatar: p.avatar, city: p.city, bags: p.bags || 0,
+        hand: p.hand.map(c => [c.suit, c.rank]),
+        bid: p.bid, blindNil: p.blindNil, tricks: p.tricks,
+        aiDiff: p.ai ? p.ai.difficulty : null,
+        personality: p.personality, generation: p.generation
+      })),
+      teams: this.teams,
+      currentPlayer: this.currentPlayer, dealer: this.dealer,
+      targetScore: this.targetScore, teamMode: this.teamMode,
+      spadesBroken: this.spadesBroken, roundNum: this._roundNum,
+      trickNum: this._trickNum, trickLeader: this.trickLeader,
+      trick: this.trick.map(t => ({ suit: t.card.suit, rank: t.card.rank, playerIndex: t.playerIndex })),
+      gameLog: this.gameLog
+    };
+    localStorage.setItem('spades_saved_game', JSON.stringify(state));
+  }
+
+  _loadGameState() {
+    const raw = localStorage.getItem('spades_saved_game');
+    if (!raw) return false;
+    try {
+      const s = JSON.parse(raw);
+      this.players = s.players.map(p => {
+        const pl = new Player(p.name, p.isHuman, p.index);
+        pl.score = p.score; pl.team = p.team; pl.avatar = p.avatar;
+        pl.city = p.city; pl.bags = p.bags || 0;
+        pl.hand = p.hand.map(c => new Card(c[0], c[1]));
+        pl.bid = p.bid; pl.blindNil = p.blindNil; pl.tricks = p.tricks;
+        if (p.aiDiff) { pl.ai = new AI(p.aiDiff); pl.personality = p.personality; pl.generation = p.generation; }
+        return pl;
+      });
+      this.teams = s.teams;
+      this.currentPlayer = s.currentPlayer; this.dealer = s.dealer;
+      this.targetScore = s.targetScore; this.teamMode = s.teamMode;
+      this.spadesBroken = s.spadesBroken; this._roundNum = s.roundNum;
+      this._trickNum = s.trickNum; this.trickLeader = s.trickLeader;
+      this.trick = s.trick.map(t => ({ card: new Card(t.suit, t.rank), playerIndex: t.playerIndex }));
+      this.gameLog = s.gameLog || [];
+      this.roundOver = false; this.gameOver = false; this._playLock = false;
+      localStorage.removeItem('spades_saved_game');
+      return true;
+    } catch(e) { localStorage.removeItem('spades_saved_game'); return false; }
+  }
+
+  _resumeGame() {
+    if (!this._loadGameState()) return;
+    this.sfx = new SFX();
+    if (this.music) { this.music.init(); this.music.start(); }
+    this.showScreen('game-screen');
+    this._updateXPBar();
+    this._updateUI();
+    this._renderTrickArea();
+    this._doTurn();
+  }
+
+  _clearSavedGame() { localStorage.removeItem('spades_saved_game'); }
 
   startRound() {
     this._roundNum++;
@@ -737,6 +810,7 @@ class Game {
       } else {
         this.trickLeader = winner.index;
         this.currentPlayer = winner.index;
+        this._saveGameState();
         this._doTurn();
       }
     });
@@ -829,6 +903,7 @@ class Game {
 
   _endGame() {
     this.gameOver = true;
+    this._clearSavedGame();
     let humanWon;
 
     if (this.teamMode) {
@@ -851,6 +926,10 @@ class Game {
     trackStat('gamesPlayed');
     if (humanWon) { trackStat('gamesWon'); trackStat('winStreak'); addXP(50); spawnConfetti(); }
     else { trackStat('loseStreak'); addXP(10); }
+    // Track head-to-head vs each AI
+    for (const p of this.players) {
+      if (!p.isHuman) trackHeadToHead(p.name, humanWon);
+    }
     checkAchievements(this);
 
     const container = document.getElementById('final-scores');
@@ -1001,6 +1080,10 @@ class Game {
         el.className = 'hand-card';
       }
       el.innerHTML = `<span class="card-rank" style="color:${card.color}">${card.rank}</span><span class="card-suit" style="color:${card.color}">${card.symbol}</span>`;
+      // Apply card skin
+      const skin = getCardSkinColors();
+      el.style.background = `linear-gradient(160deg, ${skin.face} 0%, ${skin.faceDark} 100%)`;
+      if (skin.pip) { el.querySelectorAll('.card-rank,.card-suit').forEach(s => s.style.color = card.suit === 'hearts' || card.suit === 'diamonds' ? '#c0392b' : skin.pip); }
       el.style.animationDelay = `${i * 0.03}s`;
       if (canPlay) {
         el.addEventListener('click', () => {
@@ -1404,6 +1487,10 @@ class Game {
         </div></div>
       <div class="pref-group"><div class="pref-label">${this._t('tableTheme')}</div>
         <div class="skin-options" id="table-theme-options"></div></div>
+      <div class="pref-group"><div class="pref-label">Card Skin</div>
+        <div class="skin-options" id="card-skin-options">
+          ${CARD_SKINS.map(s => `<div class="skin-option ${s.id === getCardSkin() ? 'active' : ''}" data-skin="${s.id}"><div class="skin-preview" style="background:linear-gradient(135deg,${s.face},${s.faceDark});border:1.5px solid rgba(0,0,0,0.2);"></div><span>${s.name}</span></div>`).join('')}
+        </div></div>
       <div class="pref-group"><div class="pref-label">${this._t('audio')}</div>
         <div class="toggle-row"><span>${this._t('music')}</span><label class="toggle-switch"><input type="checkbox" id="music-toggle-cb" ${musicOn?'checked':''}><span class="toggle-slider"></span></label></div>
         <div class="toggle-row"><span>${this._t('sfx')}</span><label class="toggle-switch"><input type="checkbox" id="sfx-toggle-cb" ${sfxOn?'checked':''}><span class="toggle-slider"></span></label></div></div>
@@ -1435,6 +1522,12 @@ class Game {
     if (tableOpts) {
       tableOpts.innerHTML = TABLE_THEMES.map(t => `<div class="skin-option ${t.id===getTableTheme()?'active':''}" data-table="${t.id}"><div class="skin-preview" style="background:linear-gradient(135deg,${t.felt||'#333'},${t.dark||'#111'});"></div><span>${this._t('table'+t.id.charAt(0).toUpperCase()+t.id.slice(1))}</span></div>`).join('');
       tableOpts.querySelectorAll('.skin-option').forEach(el => el.addEventListener('click', () => { setTableTheme(el.dataset.table); this._renderPrefs(); }));
+    }
+    const skinOpts = document.getElementById('card-skin-options');
+    if (skinOpts) {
+      skinOpts.querySelectorAll('.skin-option').forEach(el => {
+        el.addEventListener('click', () => { setCardSkin(el.dataset.skin); this._renderPrefs(); this._updateUI(); });
+      });
     }
     document.getElementById('music-toggle-cb')?.addEventListener('change', () => { if (this.music) { this.music.init(); this.music.toggle(); } });
     document.getElementById('sfx-toggle-cb')?.addEventListener('change', (e) => { this._soundMuted = !e.target.checked; localStorage.setItem('spades_muted', this._soundMuted ? '1' : '0'); });
@@ -1514,16 +1607,16 @@ class Game {
       : ['You', 'Rival', 'Rival', 'Rival'];
     const players = [
       { name: pName, avatar: avatarURL(humanSeed), isHuman: true, record: getRecord(pName), rank: getRank(pName), team: teamLabels[0] },
-      { name: this._previewNames[0], avatar: avatarURL(this._previewSeeds[0]), record: getRecord(this._previewNames[0]), rank: getRank(this._previewNames[0]), team: teamLabels[1], personality: this._previewPersonalities[0] },
-      { name: this._previewNames[1], avatar: avatarURL(this._previewSeeds[1]), record: getRecord(this._previewNames[1]), rank: getRank(this._previewNames[1]), team: teamLabels[2], personality: this._previewPersonalities[1] },
-      { name: this._previewNames[2], avatar: avatarURL(this._previewSeeds[2]), record: getRecord(this._previewNames[2]), rank: getRank(this._previewNames[2]), team: teamLabels[3], personality: this._previewPersonalities[2] },
+      { name: this._previewNames[0], avatar: avatarURL(this._previewSeeds[0]), record: getRecord(this._previewNames[0]), rank: getRank(this._previewNames[0]), team: teamLabels[1], personality: this._previewPersonalities[0], h2h: getHeadToHead(this._previewNames[0]) },
+      { name: this._previewNames[1], avatar: avatarURL(this._previewSeeds[1]), record: getRecord(this._previewNames[1]), rank: getRank(this._previewNames[1]), team: teamLabels[2], personality: this._previewPersonalities[1], h2h: getHeadToHead(this._previewNames[1]) },
+      { name: this._previewNames[2], avatar: avatarURL(this._previewSeeds[2]), record: getRecord(this._previewNames[2]), rank: getRank(this._previewNames[2]), team: teamLabels[3], personality: this._previewPersonalities[2], h2h: getHeadToHead(this._previewNames[2]) },
     ];
     roster.innerHTML = `<div class="roster-title">${this._t('players')}</div>`;
     players.forEach((p, pi) => {
       const card = document.createElement('div');
       card.className = 'roster-card' + (p.isHuman ? ' human' : '');
       const badge = p.team === 'Partner' ? ' 🤝' : (p.team === 'Opponent' || p.team === 'Rival') ? ' ⚔️' : '';
-      card.innerHTML = `<img class="roster-avatar" src="${p.avatar}"><div class="roster-info"><div class="roster-name">${escHTML(p.name)}${badge}</div><div class="roster-rank">${escHTML(p.rank)}${p.personality ? ' ' + p.personality.icon : ''}</div><div class="roster-record">${p.record.wins}W - ${p.record.losses}L</div></div>`;
+      card.innerHTML = `<img class="roster-avatar" src="${p.avatar}"><div class="roster-info"><div class="roster-name">${escHTML(p.name)}${badge}</div><div class="roster-rank">${escHTML(p.rank)}${p.personality ? ' ' + p.personality.icon : ''}</div><div class="roster-record">${p.record.wins}W - ${p.record.losses}L${p.h2h ? ' · vs you: ' + p.h2h.w + 'W-' + p.h2h.l + 'L' : ''}</div></div>`;
       if (!p.isHuman) {
         const btn = document.createElement('button');
         btn.className = 'roster-reroll'; btn.textContent = '🎲'; btn.title = this._t('rerollOpponent');
@@ -1540,6 +1633,42 @@ class Game {
         card.appendChild(btn);
       }
       roster.appendChild(card);
+    });
+  }
+
+  _showFirstVisitLangPicker() {
+    const overlay = document.getElementById('message-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+    const detected = detectBrowserLang();
+    overlay.innerHTML = `
+      <div class="message-box" style="max-width:400px;padding:32px;">
+        <div style="font-size:2.5rem;margin-bottom:12px;">🌍</div>
+        <div style="font-size:1.4rem;font-weight:800;margin-bottom:6px;">Choose Your Language</div>
+        <div style="font-size:0.85rem;opacity:0.5;margin-bottom:20px;">Elige tu idioma · اختر لغتك · 选择语言</div>
+        <div id="first-lang-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+          ${Object.entries(LOCALES).map(([code, loc]) => `
+            <button class="btn-option${code === detected ? ' active' : ''}" data-lang="${code}" style="display:flex;align-items:center;gap:10px;padding:14px 16px;font-size:1rem;">
+              <span style="font-size:1.6rem;">${loc.flag}</span>
+              <span>${loc.name}</span>
+              ${code === detected ? '<span style="margin-left:auto;font-size:0.65rem;opacity:0.5;background:rgba(74,144,217,0.2);padding:2px 6px;border-radius:4px;">auto</span>' : ''}
+            </button>
+          `).join('')}
+        </div>
+      </div>`;
+    overlay.querySelectorAll('#first-lang-grid .btn-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const lang = btn.dataset.lang;
+        localStorage.setItem('spades_lang', lang);
+        localStorage.setItem('spades_lang_chosen', '1');
+        PHRASES = _buildPhrases(lang);
+        this._previewNames = null;
+        this._applyLocale();
+        this._updateRoster();
+        overlay.classList.add('hidden');
+        // Show tutorial after language selection
+        if (!localStorage.getItem('spades_tutorial_done')) showTutorial();
+      });
     });
   }
 

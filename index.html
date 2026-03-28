@@ -68,6 +68,7 @@
             </div>
           </div>
           <button id="start-game" class="btn-start">Start Game</button>
+          <button id="resume-game" class="btn-start" style="display:none;background:linear-gradient(145deg,#4aaf6c,#2d8a4e);margin-top:8px;">▶ Resume Saved Game</button>
           <div id="player-roster">
             <div style="text-align:center;margin-bottom:10px;">
               <input type="text" id="player-name-input" class="name-edit" maxlength="12" placeholder="Your Name">
@@ -163,6 +164,19 @@
             <button id="ragequit-yes" class="btn-start" style="background:linear-gradient(145deg,#e04a3a,#b83025);padding:14px 28px;">💀 Quit</button>
             <button id="ragequit-no" class="btn-start" style="padding:14px 28px;">💪 Stay</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tutorial -->
+    <div id="tutorial-overlay" class="hidden">
+      <div class="tutorial-panel">
+        <button id="tut-skip" style="position:absolute;top:12px;right:16px;background:none;border:none;color:rgba(255,255,255,0.4);font-size:1.2rem;cursor:pointer;">✕</button>
+        <div id="tutorial-step-content"></div>
+        <div class="tutorial-nav">
+          <button class="tut-btn-prev" id="tut-prev">← Back</button>
+          <div class="tut-dots" id="tut-dots"></div>
+          <button class="tut-btn-next" id="tut-next">Next →</button>
         </div>
       </div>
     </div>

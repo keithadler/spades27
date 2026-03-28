@@ -246,3 +246,76 @@ function initAmbientDust() {
   animate();
 }
 initAmbientDust();
+
+
+// ---------------------------------------------------------------------------
+// Card Skins
+// ---------------------------------------------------------------------------
+
+const CARD_SKINS = [
+  { id: 'classic', name: 'Classic', face: '#fff', faceDark: '#f0f0f0', back: '#4a6a9a', backDark: '#2a4a7a' },
+  { id: 'midnight', name: 'Midnight', face: '#2a2a3e', faceDark: '#1a1a2e', back: '#1a1a2e', backDark: '#0a0a1e', pip: '#4a90d9' },
+  { id: 'gold', name: 'Gold', face: '#fff8e0', faceDark: '#e8c860', back: '#c09830', backDark: '#8a6a20' },
+  { id: 'neon', name: 'Neon', face: '#1a1a2e', faceDark: '#0a0a1e', back: '#0a0a18', backDark: '#050510', pip: '#0ff' },
+  { id: 'wood', name: 'Wood', face: '#d4a574', faceDark: '#a0703c', back: '#8a5a2a', backDark: '#5a3a1a' },
+  { id: 'marble', name: 'Marble', face: '#f0f0f0', faceDark: '#d0d0d0', back: '#a0a0a0', backDark: '#707070' },
+];
+
+function getCardSkin() { return localStorage.getItem('spades_card_skin') || 'classic'; }
+function setCardSkin(id) { localStorage.setItem('spades_card_skin', id); }
+function getCardSkinColors() { return CARD_SKINS.find(s => s.id === getCardSkin()) || CARD_SKINS[0]; }
+
+
+// ---------------------------------------------------------------------------
+// Tutorial System
+// ---------------------------------------------------------------------------
+
+const TUTORIAL_STEPS = [
+  { title: '👋 Welcome to Spades!', body: 'A trick-taking card game where <strong>spades are always trump</strong>. Play with a partner against two opponents. First team to the target score wins.' },
+  { title: '🃏 The Deal', body: 'Each player gets <strong>13 cards</strong> from a standard 52-card deck. Cards rank from 2 (lowest) to Ace (highest).' },
+  { title: '📢 Bidding', body: 'Before play, each player <strong>bids</strong> how many tricks they expect to win (1–13). Your team\'s bids are combined. Bid carefully — overbidding is costly!' },
+  { title: '🎯 Nil & Blind Nil', body: '<strong>Nil</strong> = bid zero tricks (+100 if you succeed, -100 if you fail). <strong>Blind Nil</strong> = bid zero before seeing your cards (+200/-200). High risk, high reward.' },
+  { title: '🎮 Playing Tricks', body: 'The player left of the dealer leads first. You <strong>must follow the lead suit</strong>. Can\'t follow? Play any card — including spades to <strong>trump</strong>.' },
+  { title: '♠ Breaking Spades', body: 'You can\'t lead with spades until someone plays a spade on a previous trick. Once broken, spades can be led freely.' },
+  { title: '💰 Scoring', body: 'Make your bid: <strong>bid × 10 points</strong> + 1 per overtrick (bag). Miss it: <strong>-bid × 10</strong>. Every <strong>10 bags = -100 penalty</strong>!' },
+  { title: '🤝 Teamwork', body: 'Your partner sits across from you. Watch their plays — don\'t overtake their winning tricks. When they bid Nil, cover for them by winning tricks.' },
+  { title: '🚀 You\'re Ready!', body: 'First to the <strong>target score</strong> wins. Use the bid tracker on the table to monitor progress. Press <strong>?</strong> for keyboard shortcuts. Good luck!' },
+];
+
+function showTutorial(onClose) {
+  let step = 0;
+  const overlay = document.getElementById('tutorial-overlay');
+  const content = document.getElementById('tutorial-step-content');
+  const dots = document.getElementById('tut-dots');
+  const prevBtn = document.getElementById('tut-prev');
+  const nextBtn = document.getElementById('tut-next');
+  if (!overlay || !content) return;
+
+  function render() {
+    const s = TUTORIAL_STEPS[step];
+    content.innerHTML = `
+      <div style="font-size:1.4rem;font-weight:900;text-align:center;margin-bottom:6px;background:linear-gradient(180deg,#fff 20%,#4a90d9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">${s.title}</div>
+      <div style="font-size:0.75rem;opacity:0.4;text-align:center;margin-bottom:16px;">Step ${step + 1} of ${TUTORIAL_STEPS.length}</div>
+      <div style="font-size:0.95rem;line-height:1.7;opacity:0.85;">${s.body}</div>
+    `;
+    dots.innerHTML = TUTORIAL_STEPS.map((_, i) =>
+      `<div style="width:8px;height:8px;border-radius:50%;background:${i === step ? '#4a90d9' : 'rgba(255,255,255,0.15)'};transition:all 0.2s;${i === step ? 'transform:scale(1.3);' : ''}"></div>`
+    ).join('');
+    prevBtn.disabled = step === 0;
+    nextBtn.textContent = step === TUTORIAL_STEPS.length - 1 ? 'Start Playing!' : 'Next →';
+  }
+
+  prevBtn.onclick = () => { if (step > 0) { step--; render(); } };
+  nextBtn.onclick = () => {
+    if (step < TUTORIAL_STEPS.length - 1) { step++; render(); }
+    else { overlay.classList.add('hidden'); localStorage.setItem('spades_tutorial_done', '1'); if (onClose) onClose(); }
+  };
+  document.getElementById('tut-skip').onclick = () => {
+    overlay.classList.add('hidden');
+    localStorage.setItem('spades_tutorial_done', '1');
+    if (onClose) onClose();
+  };
+
+  overlay.classList.remove('hidden');
+  render();
+}
