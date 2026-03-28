@@ -367,7 +367,8 @@ class AI {
 
       // Determine if we should be in duck mode:
       // Duck when I've made MY bid OR when the TEAM has made the combined bid
-      const shouldDuck = iMadeBid || teamMadeBid;
+      // EXCEPTION: NEVER duck when partner bid nil — nil protection is #1 priority
+      const shouldDuck = (iMadeBid || teamMadeBid) && !partnerIsNil;
 
       // ===== FACTOR 1: LEADING =====
       if (isLeading) {
