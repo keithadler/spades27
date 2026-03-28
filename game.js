@@ -1193,6 +1193,8 @@ class Game {
   }
 
   _showThinking(player) {
+    // Clear speech bubbles so they don't overlap
+    document.querySelectorAll('.speech-bubble').forEach(el => el.remove());
     const el = document.getElementById('thinking-overlay');
     if (!el) return;
     el.classList.remove('hidden');
@@ -1219,6 +1221,10 @@ class Game {
   }
 
   _showSpeechBubble(player, text) {
+    // Clear old speech bubbles and hide thinking to prevent overlap
+    document.querySelectorAll('.speech-bubble').forEach(el => el.remove());
+    this._hideThinking();
+
     const pos = this._getPlayerPosition(player.index);
     const panel = document.getElementById('opponent-' + pos);
     if (!panel) return;
@@ -1227,29 +1233,25 @@ class Game {
     bubble.className = 'speech-bubble';
     bubble.textContent = text;
 
-    // Position based on which side the player is on
+    // Position ABOVE the panel center so it doesn't overlap thinking indicator
     if (pos === 'left') {
       bubble.style.left = (r.right + 8) + 'px';
-      bubble.style.top = (r.top + r.height / 2 - 20) + 'px';
+      bubble.style.top = (r.top) + 'px';
     } else if (pos === 'right') {
-      // Anchor to right edge so it doesn't overflow
       bubble.style.right = (window.innerWidth - r.left + 8) + 'px';
-      bubble.style.top = (r.top + r.height / 2 - 20) + 'px';
+      bubble.style.top = (r.top) + 'px';
     } else {
-      // Top player — show below
+      // Top player — show above panel
       bubble.style.left = (r.left + r.width / 2 - 80) + 'px';
-      bubble.style.top = (r.bottom + 4) + 'px';
+      bubble.style.top = Math.max(4, r.top - 56) + 'px';
     }
 
-    // Clamp to viewport
     document.body.appendChild(bubble);
     requestAnimationFrame(() => {
       const br = bubble.getBoundingClientRect();
       if (br.left < 4) bubble.style.left = '4px';
-      if (br.right > window.innerWidth - 4) {
-        bubble.style.left = '';
-        bubble.style.right = '4px';
-      }
+      if (br.right > window.innerWidth - 4) { bubble.style.left = ''; bubble.style.right = '4px'; }
+      if (br.top < 4) bubble.style.top = '4px';
     });
 
     setTimeout(() => bubble.remove(), 2800);
