@@ -379,18 +379,21 @@ class AI {
     let teamNeedsTricks = true;
     let teamMadeBid = false;
     let partnerNeedsTricks = true;
+    let partnerIsNil = false;
     let tricksLeftInRound = 13;
 
     if (ctx) {
       iNeedTricks = ctx.myBid > 0 && ctx.myTricks < ctx.myBid;
       partnerNeedsTricks = ctx.partnerBid > 0 && ctx.partnerTricks < ctx.partnerBid;
+      partnerIsNil = ctx.partnerBid === 0;
 
       if (ctx.allPlayers && ctx.teamMode) {
         const myTeamPlayers = ctx.allPlayers.filter(p => p.team === ctx.myTeam);
         const teamTricks = myTeamPlayers.reduce((s, p) => s + p.tricks, 0);
+        // For team bid calculation, nil bidders contribute 0 to the team bid
         const teamBid = myTeamPlayers.filter(p => p.bid > 0).reduce((s, p) => s + p.bid, 0);
-        teamNeedsTricks = teamTricks < teamBid;
-        teamMadeBid = teamTricks >= teamBid && teamBid > 0;
+        teamNeedsTricks = teamBid > 0 && teamTricks < teamBid;
+        teamMadeBid = teamBid > 0 && teamTricks >= teamBid;
         const totalTricks = ctx.allPlayers.reduce((s, p) => s + p.tricks, 0);
         tricksLeftInRound = 13 - totalTricks;
       } else {
@@ -405,11 +408,28 @@ class AI {
       const wouldWin = this._wouldWin(card, trick, leadSuit);
 
       // ===== FACTOR 1: LEADING STRATEGY =====
-      // When we lead, we choose the battlefield. Pick wisely.
-      // KEY: If I've made MY bid but partner still needs tricks,
-      // lead LOW to give partner opportunities instead of stealing them.
+      // KEY: Adapt based on team state AND partner nil status.
       if (isLeading) {
-        if (iNeedTricks) {
+        if (partnerIsNil) {
+          // PARTNER BID NIL — lead HIGH to win tricks ourselves and
+          // protect partner. Lead aces/kings so WE take the trick
+          // before partner has to play something dangerous.
+          // Also prefer leading suits where we're LONG (we can keep
+          // winning in that suit, keeping partner safe).
+          if (!card.isSpade) {
+            if (card.value === 14) score += 12; // Lead aces — we win, partner safe
+            else if (card.value === 13) score += 8; // Kings too
+            else if (card.value >= 10) score += 3;
+            else score -= 2; // Low leads are DANGEROUS — partner might have to win
+            const suitCount = hand.filter(c => c.suit === card.suit).length;
+            if (suitCount >= 4) score += 4; // Long suits = more control
+          } else {
+            // Leading spades when partner is nil: risky but OK if we
+            // have high spades (we win, partner plays low spade under us)
+            if (card.value >= 12) score += 4;
+            else score -= 4; // Low spade lead could force partner's high spade
+          }
+        } else if (iNeedTricks) {
           // I still need tricks — lead aggressively
           if (!card.isSpade) {
             score += card.value * 0.5;
@@ -441,7 +461,12 @@ class AI {
 
       // ===== FACTOR 2: FOLLOWING — WE CAN WIN =====
       else if (wouldWin) {
-        if (iNeedTricks) {
+        if (partnerIsNil) {
+          // PARTNER BID NIL — always try to win! Every trick we take
+          // is one our partner doesn't have to worry about.
+          score += 12;
+          score -= card.value * 0.2; // Still prefer winning cheaply
+        } else if (iNeedTricks) {
           // I personally need more tricks — win it!
           score += 10;
           score -= card.value * 0.3; // Win cheaply
@@ -486,16 +511,18 @@ class AI {
       }
 
       // ===== FACTOR 4: PARTNER AWARENESS (Hard only) =====
-      // If our partner already played and is currently winning,
-      // DON'T overtake them. Play low and save your high cards.
-      //
-      // Example: Partner played K♥ and is winning. We have A♥.
-      // Bad play: A♥ (wastes our ace on a trick partner already won)
-      // Good play: 3♥ (save the ace for a trick where it matters)
       if (this.difficulty === 'hard' && partnerPlayed) {
         const partnerCard = trick[1]; // Partner is 2 positions back
         if (partnerCard && this._isWinning(partnerCard, trick, leadSuit)) {
-          score += (14 - card.value) * 0.8; // Play low when partner's winning
+          if (partnerIsNil) {
+            // Partner bid nil and is WINNING — we MUST overtake them!
+            // This is critical: if we don't take this trick, partner's
+            // nil is busted.
+            if (wouldWin) score += 15; // Strongly prefer winning to save nil
+            else score -= 5;
+          } else {
+            score += (14 - card.value) * 0.8; // Normal: play low when partner's winning
+          }
         }
       }
 
