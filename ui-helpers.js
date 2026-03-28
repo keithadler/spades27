@@ -7,6 +7,8 @@
 function avatarURL(seed) {
   return `https://api.dicebear.com/9.x/open-peeps/svg?seed=${encodeURIComponent(seed)}&radius=50&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
 }
+// Fallback SVG if avatar fails to load
+const FALLBACK_AVATAR = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="32" fill="#4a6a9a"/><text x="32" y="40" text-anchor="middle" fill="#fff" font-size="28">♠</text></svg>');
 
 function _buildPhrases(lang) {
   const loc = getLocale(lang || 'en');

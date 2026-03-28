@@ -121,13 +121,13 @@ Object.assign(Game.prototype, {
         <div style="font-size:8rem;font-weight:900;line-height:1;background:linear-gradient(180deg,#fff 10%,#4a90d9 40%,#2a60a0 70%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 40px rgba(74,144,217,0.5)) drop-shadow(0 4px 12px rgba(0,0,0,0.8));opacity:0;animation:raNumberPop 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.3s forwards;">${this._roundNum}</div>
         <div style="width:120px;height:2px;margin:12px auto 20px;background:linear-gradient(90deg,transparent,#4a90d9,transparent);opacity:0;animation:raFadeIn 0.4s ease-out 0.7s forwards;"></div>
         <div style="display:flex;align-items:center;justify-content:center;gap:16px;opacity:0;animation:raSlideUp 0.5s ease-out 0.8s forwards;">
-          <img src="${this.players[this.dealer].avatar}" style="width:56px;height:56px;border-radius:50%;border:3px solid rgba(74,144,217,0.5);box-shadow:0 4px 16px rgba(0,0,0,0.5);">
+          <img src="${this.players[this.dealer].avatar}" style="width:56px;height:56px;border-radius:50%;border:3px solid rgba(74,144,217,0.5);box-shadow:0 4px 16px rgba(0,0,0,0.5);" alt="">
           <div style="text-align:left;text-shadow:0 2px 8px rgba(0,0,0,0.7);">
-            <div style="font-size:0.8rem;opacity:0.6;">Dealer</div>
+            <div style="font-size:0.8rem;opacity:0.6;">${this._t("dealer")}</div>
             <div style="font-weight:800;font-size:1.1rem;">${dealerName}</div>
           </div>
         </div>
-        <div style="margin-top:12px;font-size:0.9rem;opacity:0;animation:raFadeIn 0.4s ease-out 1.2s forwards;color:rgba(255,255,255,0.7);text-shadow:0 2px 6px rgba(0,0,0,0.6);">${leaderName} leads first</div>
+        <div style="margin-top:12px;font-size:0.9rem;opacity:0;animation:raFadeIn 0.4s ease-out 1.2s forwards;color:rgba(255,255,255,0.7);text-shadow:0 2px 6px rgba(0,0,0,0.6);">${leaderName} ${this._t("leadsFirst")}</div>
       </div>
     `;
     document.body.appendChild(el);

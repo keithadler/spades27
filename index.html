@@ -13,7 +13,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0a1428">
   <meta name="author" content="Keith Adler">
-  <title>Spades</title>
+  <title>Spades 27</title>
+  <!-- Open Graph -->
+  <meta property="og:title" content="Spades 27">
+  <meta property="og:description" content="Free browser Spades card game with AI opponents, 4 languages, achievements &amp; more">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://keithadler.github.io/spades27/">
+  <meta name="twitter:card" content="summary">
+  <meta name="description" content="Free browser Spades card game with AI opponents, 2v2 teams or FFA, Nil/Blind Nil, 4 languages, achievements, and more. No install needed.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a1428'/%3E%3Cpath d='M32 12 C32 12 16 28 16 38 C16 44 20 48 26 48 C28 48 30 47 32 45 C34 47 36 48 38 48 C44 48 48 44 48 38 C48 28 32 12 32 12Z' fill='%234a90d9'/%3E%3Crect x='30' y='44' width='4' height='10' rx='1' fill='%234a90d9'/%3E%3C/svg%3E">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css">
@@ -21,7 +28,7 @@
 <body>
   <div id="app">
     <!-- Menu Screen -->
-    <div id="menu-screen" class="screen active">
+    <div id="menu-screen" class="screen active" role="main" aria-label="Main menu">
       <div class="menu-container">
         <div class="title-wrap">
           <div class="title-spade">♠</div>
@@ -79,8 +86,8 @@
     </div>
 
     <!-- Game Screen -->
-    <div id="game-screen" class="screen">
-      <div id="score-bar"><div id="score-bar-content"></div></div>
+    <div id="game-screen" class="screen" role="main" aria-label="Game board">
+      <div id="score-bar" role="status" aria-label="Score"><div id="score-bar-content"></div></div>
       <div id="game-layout">
         <div id="opponent-top" class="opponent-hand top"></div>
         <div id="game-middle">
@@ -88,7 +95,7 @@
           <div id="center-area">
             <div id="board-area">
               <div id="trick-area"></div>
-              <div id="trick-info"></div>
+              <div id="trick-info" aria-live="polite"></div>
               <div id="bid-tracker"></div>
             </div>
           </div>
@@ -96,13 +103,13 @@
         </div>
       </div>
       <div id="bottom-bar">
-        <div id="player-hand"></div>
+        <div id="player-hand" role="group" aria-label="Your cards"></div>
         <div id="human-info">
           <div id="xp-bar-wrap"></div>
         </div>
       </div>
-      <button id="menu-btn" class="btn-menu" title="Menu (M)">☰</button>
-      <div id="game-dropdown" class="hidden">
+      <button id="menu-btn" class="btn-menu" title="Menu (M)" aria-label="Open menu">☰</button>
+      <div id="game-dropdown" class="hidden" role="menu" aria-label="Game menu">
         <button class="dd-item" id="rules-btn">📖 Rules <kbd class="dd-key">R</kbd></button>
         <button class="dd-item" id="tutorial-btn">🎓 Tutorial</button>
         <button class="dd-item" id="log-btn">📋 Game Log <kbd class="dd-key">G</kbd></button>
@@ -113,9 +120,9 @@
       </div>
       <div id="thinking-overlay" class="hidden"></div>
       <div id="floating-arrow" style="display:none"></div>
-      <div id="bid-overlay" class="hidden"></div>
-      <div id="message-overlay" class="hidden"></div>
-      <div id="rules-overlay" class="hidden">
+      <div id="bid-overlay" class="hidden" role="dialog" aria-label="Bidding"></div>
+      <div id="message-overlay" class="hidden" role="dialog" aria-label="Message"></div>
+      <div id="rules-overlay" class="hidden" role="dialog" aria-label="Rules">
         <div class="rules-panel">
           <h2>How to Play Spades</h2>
           <div class="rules-content">
@@ -183,7 +190,7 @@
     </div>
 
     <!-- Game Over Screen -->
-    <div id="gameover-screen" class="screen">
+    <div id="gameover-screen" class="screen" role="main" aria-label="Game over">
       <div class="menu-container">
         <h1 class="game-title">Game Over</h1>
         <div id="final-scores"></div>
@@ -203,5 +210,6 @@
   <script src="ui-helpers.js"></script>
   <script src="game.js"></script>
   <script src="game-fx.js"></script>
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
 </body>
 </html>

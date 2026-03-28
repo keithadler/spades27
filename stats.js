@@ -7,7 +7,7 @@
 function getStats() {
   try { return JSON.parse(localStorage.getItem('spades_stats') || '{}'); } catch(e) { return {}; }
 }
-function saveStats(stats) { localStorage.setItem('spades_stats', JSON.stringify(stats)); }
+function saveStats(stats) { try { localStorage.setItem('spades_stats', JSON.stringify(stats)); } catch(e) {} }
 function recordWin(name) { const s = getStats(); if (!s[name]) s[name] = {wins:0,losses:0}; s[name].wins++; saveStats(s); }
 function recordLoss(name) { const s = getStats(); if (!s[name]) s[name] = {wins:0,losses:0}; s[name].losses++; saveStats(s); }
 function getRecord(name) { return getStats()[name] || {wins:0,losses:0}; }
@@ -37,10 +37,10 @@ function seedAIRecord(name, difficulty) {
 }
 
 function getPlayerName() { return localStorage.getItem('spades_player_name') || _tUI('playerName'); }
-function setPlayerName(name) { localStorage.setItem('spades_player_name', name || _tUI('playerName')); }
+function setPlayerName(name) { try { localStorage.setItem('spades_player_name', name || _tUI('playerName')); } catch(e) {} }
 
 function getGameStats() { try { return JSON.parse(localStorage.getItem('spades_game_stats') || '{}'); } catch(e) { return {}; } }
-function saveGameStats(s) { localStorage.setItem('spades_game_stats', JSON.stringify(s)); }
+function saveGameStats(s) { try { localStorage.setItem('spades_game_stats', JSON.stringify(s)); } catch(e) {} }
 
 function trackStat(key, value) {
   const s = getGameStats();

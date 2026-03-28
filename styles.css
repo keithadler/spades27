@@ -622,3 +622,9 @@ body[data-theme="light"] .speech-bubble.bid-bubble {
 .tut-btn-prev { background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.1); }
 .tut-btn-prev:disabled { opacity:0.3; cursor:not-allowed; }
 .tut-dots { display:flex; gap:6px; }
+
+
+/* Avatar fallback */
+.opp-avatar, .human-avatar, .roster-avatar, .think-avatar {
+  object-fit: cover;
+}

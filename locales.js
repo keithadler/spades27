@@ -111,6 +111,12 @@ LOCALES.en = {
     introAiCloseToWin: ['GG incoming 😎', 'Almost there 💀', 'Wrapping this up 🎁', 'Can you feel it? 🏆'],
     introAiTrailing: ['Not worried 😤', 'Comeback time 🔄', 'Watch me rally 🔥', 'Nil time? 🎯'],
     introAiLeading: ['Catch me if you can 🏃', 'Loving this lead 😏', 'Pressure\'s on you 👀', 'Keep bagging 🎒'],
+    // UI strings used in game.js
+    bidTracker: 'Bid / Tricks', bidsSoFar: 'Bids so far',
+    teamDown: 'Your team is down by', beforeSeeing: 'before seeing your cards',
+    noThanks: 'No thanks', goBlindNil: 'Go Blind Nil!',
+    perfect: 'Perfect!', dealer: 'Dealer', leadsFirst: 'leads first',
+    score: 'Score', vsYouRecord: 'vs you',
   },
   p: {
     z: {
@@ -236,6 +242,11 @@ LOCALES.es = {
     introAiCloseToWin: ['GG en camino 😎', '¿Lo sientes? 💀', 'Cerrando esto 🎁'],
     introAiTrailing: ['No me preocupo 😤', '¡Hora de remontar! 🔄', 'Racha de suerte viene'],
     introAiLeading: ['Atrápame si puedes 🏃', 'Me gusta esta ventaja 😏'],
+    bidTracker: 'Apuesta / Bazas', bidsSoFar: 'Apuestas hasta ahora',
+    teamDown: 'Tu equipo va perdiendo por', beforeSeeing: 'antes de ver tus cartas',
+    noThanks: 'No gracias', goBlindNil: '¡Nulo Ciego!',
+    perfect: '¡Perfecto!', dealer: 'Repartidor', leadsFirst: 'abre primero',
+    score: 'Puntos', vsYouRecord: 'vs tú',
   }),
   p: {
     z: {
@@ -334,6 +345,11 @@ LOCALES.ar = {
     introAiCloseToWin: ['GG جاية 😎','قربنا 💀'],
     introAiTrailing: ['مو قلقان 😤','وقت الرجعة 🔄'],
     introAiLeading: ['امسكني لو تقدر 🏃','الضغط عليك 👀'],
+    bidTracker: 'مزايدة / حيل', bidsSoFar: 'المزايدات حتى الآن',
+    teamDown: 'فريقك متأخر بـ', beforeSeeing: 'قبل ما تشوف أوراقك',
+    noThanks: 'لا شكراً', goBlindNil: 'صفر أعمى!',
+    perfect: 'مثالي!', dealer: 'الموزع', leadsFirst: 'يبدأ أولاً',
+    score: 'النقاط', vsYouRecord: 'ضدك',
   }),
   p: {
     z: {
@@ -432,6 +448,11 @@ LOCALES.zh = {
     introAiCloseToWin: ['GG在即 😎','快了 💀'],
     introAiTrailing: ['不担心 😤','逆转时刻 🔄'],
     introAiLeading: ['来追我啊 🏃','压力在你 👀'],
+    bidTracker: '叫牌 / 墩', bidsSoFar: '已有叫牌',
+    teamDown: '你的队伍落后', beforeSeeing: '在看牌之前',
+    noThanks: '不了', goBlindNil: '盲零！',
+    perfect: '完美！', dealer: '庄家', leadsFirst: '先出牌',
+    score: '分数', vsYouRecord: '对你',
   }),
   p: {
     z: {

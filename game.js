@@ -497,7 +497,7 @@ class Game {
       ${bidsHtml}
       <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;">
         <button id="blind-nil-yes" class="btn-start" style="background:linear-gradient(145deg,#a855f7,#7c3aed);padding:14px 28px;">🙈 Go Blind Nil!</button>
-        <button id="blind-nil-no" class="btn-start" style="background:linear-gradient(145deg,rgba(255,255,255,0.15),rgba(255,255,255,0.05));color:#fff;box-shadow:none;padding:14px 28px;">No thanks</button>
+        <button id="blind-nil-no" class="btn-start" style="background:linear-gradient(145deg,rgba(255,255,255,0.15),rgba(255,255,255,0.05));color:#fff;box-shadow:none;padding:14px 28px;">${this._t('noThanks')}</button>
       </div>
     </div>`;
     document.getElementById('blind-nil-yes').addEventListener('click', () => { overlay.classList.add('hidden'); callback(true); });
@@ -527,7 +527,7 @@ class Game {
     const bidsMade = this.players.filter(p => p.hasBid);
     if (bidsMade.length > 0) {
       html += '<div style="margin:0 0 12px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.05);">';
-      html += '<div style="font-size:0.7rem;opacity:0.4;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Bids so far</div>';
+      html += '<div style="font-size:0.7rem;opacity:0.4;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">' + this._t('bidsSoFar') + '</div>';
       for (const p of bidsMade) {
         const icon = this.teamMode ? (p.team === 0 ? '🟢' : '🔴') : '';
         const bidText = p.blindNil ? '🙈 Blind Nil' : p.bid === 0 ? '🎯 Nil' : p.bid;
@@ -1038,6 +1038,11 @@ class Game {
   }
 
   _renderAllHands() {
+    // Dirty check: only rebuild opponent panels if state changed
+    const stateKey = this.players.map(p => `${p.index}:${p.tricks}:${p.bid}:${p.hand.length}:${this.currentPlayer}`).join('|');
+    if (this._lastHandState === stateKey) return;
+    this._lastHandState = stateKey;
+
     // Render opponent hands (face-down) and human hand
     for (let i = 1; i <= 3; i++) {
       const pos = this._getPlayerPosition(i);
@@ -1127,6 +1132,9 @@ class Game {
         el.className = 'hand-card';
       }
       el.innerHTML = `<span class="card-rank" style="color:${card.color}">${card.rank}</span><span class="card-suit" style="color:${card.color}">${card.symbol}</span>`;
+      el.setAttribute('role', 'button');
+      el.setAttribute('aria-label', `${card.rank} of ${card.suit}${canPlay ? ' - playable' : ''}`);
+      el.setAttribute('tabindex', canPlay ? '0' : '-1');
       // Apply card skin
       const skin = getCardSkinColors();
       el.style.background = `linear-gradient(160deg, ${skin.face} 0%, ${skin.faceDark} 100%)`;
@@ -1182,7 +1190,7 @@ class Game {
       el.innerHTML = ''; return;
     }
 
-    let html = '<div class="bt-title">Bid / Tricks</div>';
+    let html = '<div class="bt-title">' + this._t('bidTracker') + '</div>';
 
     // Show each player: name, bid, tricks won (color-coded)
     for (const p of this.players) {
@@ -1267,7 +1275,7 @@ class Game {
   _showTrickWinner(winner, callback) {
     const el = document.createElement('div');
     el.className = 'trick-winner-popup';
-    el.innerHTML = `<img src="${winner.avatar}" style="width:40px;height:40px;border-radius:50%;"> ${escHTML(winner.name)} wins!`;
+    el.innerHTML = `<img src="${winner.avatar}" style="width:40px;height:40px;border-radius:50%;" alt=""> ${escHTML(winner.name)} wins!`;
     document.body.appendChild(el);
     spawnParticles(window.innerWidth / 2, window.innerHeight / 2, 10, 'particle-gold');
     setTimeout(() => { el.remove(); callback(); }, this._speedMs(1200));
@@ -1299,7 +1307,7 @@ class Game {
         // Team header with avatars
         html += `<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;">`;
         for (const p of teamPlayers) {
-          html += `<img src="${p.avatar}" style="width:40px;height:40px;border-radius:50%;border:2px solid ${borderColor};">`;
+          html += `<img src="${p.avatar}" style="width:40px;height:40px;border-radius:50%;border:2px solid ${borderColor};" alt="">`;
         }
         html += `<div style="font-weight:900;font-size:1.1rem;">${icon} ${teamPlayers.map(p => escHTML(p.name)).join(' & ')}</div>`;
         html += `</div>`;
@@ -1313,7 +1321,7 @@ class Game {
           const statusIcon = nilBust ? '💥' : nilOk ? '✨' : (p.bid > 0 && p.tricks > p.bid) ? '🎒' : '';
 
           html += `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;">
-            <img src="${p.avatar}" style="width:28px;height:28px;border-radius:50%;opacity:0.8;">
+            <img src="${p.avatar}" style="width:28px;height:28px;border-radius:50%;opacity:0.8;" alt="">
             <span style="flex:1;font-weight:700;font-size:0.9rem;">${escHTML(p.name)}</span>
             <span style="font-weight:800;color:#4a90d9;min-width:36px;text-align:center;">${bidLabel}</span>
             <span style="font-weight:800;color:${trickColor};min-width:24px;text-align:center;">${p.tricks}</span>
@@ -1323,7 +1331,7 @@ class Game {
 
         // Result banner
         const resultEmoji = made ? (bags === 0 ? '🎯' : bags >= 3 ? '🎒😬' : '✅') : '🚫';
-        const resultText = made ? (bags === 0 ? 'Perfect!' : this._t('made')) : this._t('set');
+        const resultText = made ? (bags === 0 ? this._t('perfect') : this._t('made')) : this._t('set');
         const resultColor = made ? '#4aaf6c' : '#e04a3a';
         html += `<div style="margin-top:10px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.04);text-align:center;">
           <span style="font-size:1.3rem;font-weight:900;color:${resultColor};">${resultEmoji} ${resultText}</span>
@@ -1341,7 +1349,7 @@ class Game {
           else if (!made && !isMyTeam) phrase = getPhrase(talker, 'win');
           if (phrase) {
             html += `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,0.03);">
-              <img src="${talker.avatar}" style="width:24px;height:24px;border-radius:50%;">
+              <img src="${talker.avatar}" style="width:24px;height:24px;border-radius:50%;" alt="">
               <span style="font-size:0.85rem;font-style:italic;opacity:0.8;">"${escHTML(phrase)}"</span>
             </div>`;
           }
@@ -1376,7 +1384,7 @@ class Game {
         const bidLabel = p.blindNil ? '�� BN' : p.bid === 0 ? '🎯 Nil' : p.bid;
         const resultColor = made ? '#4aaf6c' : '#e04a3a';
         html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
-          <img src="${p.avatar}" style="width:32px;height:32px;border-radius:50%;">
+          <img src="${p.avatar}" style="width:32px;height:32px;border-radius:50%;" alt="">
           <span style="flex:1;font-weight:700;">${escHTML(p.name)}</span>
           <span style="font-weight:800;color:#4a90d9;">${bidLabel}</span>
           <span style="font-weight:800;color:${resultColor};">${p.tricks}</span>
@@ -1407,7 +1415,7 @@ class Game {
     if (!el) return;
     el.classList.remove('hidden');
     el.innerHTML = `<div class="think-card">
-      <img class="think-avatar" src="${player.avatar}" style="width:36px;height:36px;border-radius:50%;border:2px solid rgba(74,144,217,0.4);">
+      <img class="think-avatar" src="${player.avatar}" style="width:36px;height:36px;border-radius:50%;border:2px solid rgba(74,144,217,0.4);" alt="">
       <div class="think-info">
         <div class="think-name">${escHTML(player.name)}</div>
         <div class="think-label">${this._t('thinking')} <span class="thinking-dots-lg"><span></span><span></span><span></span></span></div>
@@ -1661,7 +1669,7 @@ class Game {
       const card = document.createElement('div');
       card.className = 'roster-card' + (p.isHuman ? ' human' : '');
       const badge = p.team === 'Partner' ? ' 🤝' : (p.team === 'Opponent' || p.team === 'Rival') ? ' ⚔️' : '';
-      card.innerHTML = `<img class="roster-avatar" src="${p.avatar}"><div class="roster-info"><div class="roster-name">${escHTML(p.name)}${badge}</div><div class="roster-rank">${escHTML(p.rank)}${p.personality ? ' ' + p.personality.icon : ''}</div><div class="roster-record">${p.record.wins}W - ${p.record.losses}L${p.h2h ? ' · vs you: ' + p.h2h.w + 'W-' + p.h2h.l + 'L' : ''}</div></div>`;
+      card.innerHTML = `<img class="roster-avatar" src="${p.avatar}" alt=""><div class="roster-info"><div class="roster-name">${escHTML(p.name)}${badge}</div><div class="roster-rank">${escHTML(p.rank)}${p.personality ? ' ' + p.personality.icon : ''}</div><div class="roster-record">${p.record.wins}W - ${p.record.losses}L${p.h2h ? ' · vs you: ' + p.h2h.w + 'W-' + p.h2h.l + 'L' : ''}</div></div>`;
       if (!p.isHuman) {
         const btn = document.createElement('button');
         btn.className = 'roster-reroll'; btn.textContent = '🎲'; btn.title = this._t('rerollOpponent');
