@@ -377,10 +377,15 @@ class AI {
       partnerNeedsTricks = ctx.partnerBid > 0 && ctx.partnerTricks < ctx.partnerBid;
       partnerIsNil = ctx.partnerBid === 0;
 
+      // KEY CHANGE: "made my bid" is purely individual.
+      // Once I've won enough tricks for MY bid, I stop trying to win.
+      // I trust my partner to get their own tricks.
+      // teamMadeBid is only used for the opponent-bagging strategy.
+      const iMadeMyBid = ctx.myBid > 0 && ctx.myTricks >= ctx.myBid;
+
       if (ctx.allPlayers && ctx.teamMode) {
         const myTeamPlayers = ctx.allPlayers.filter(p => p.team === ctx.myTeam);
         const teamTricks = myTeamPlayers.reduce((s, p) => s + p.tricks, 0);
-        // For team bid calculation, nil bidders contribute 0 to the team bid
         const teamBid = myTeamPlayers.filter(p => p.bid > 0).reduce((s, p) => s + p.bid, 0);
         teamNeedsTricks = teamBid > 0 && teamTricks < teamBid;
         teamMadeBid = teamBid > 0 && teamTricks >= teamBid;
@@ -388,7 +393,7 @@ class AI {
         tricksLeftInRound = 13 - totalTricks;
       } else {
         teamNeedsTricks = iNeedTricks;
-        teamMadeBid = !iNeedTricks && ctx.myBid > 0;
+        teamMadeBid = iMadeMyBid;
       }
     }
 
