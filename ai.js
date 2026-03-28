@@ -438,14 +438,14 @@ class AI {
           }
         } else if (partnerNeedsTricks && teamNeedsTricks) {
           // I've made MY bid but partner still needs tricks.
-          // Lead LOW non-spades to give partner winning opportunities.
-          // Don't lead aces — those steal tricks partner needs.
+          // HARD DUCK: actively try to LOSE. Don't "help" partner —
+          // they can win their own tricks. Every trick I win now is a bag.
           if (!card.isSpade) {
-            score += (14 - card.value) * 0.8; // Prefer low cards
-            if (card.value === 14) score -= 8; // DON'T lead aces
-            if (card.value === 13) score -= 4; // Avoid kings too
+            score += (14 - card.value) * 1.5; // Strongly prefer lowest cards
+            if (card.value >= 13) score -= 12; // NEVER lead aces/kings
+            if (card.value >= 10) score -= 5;  // Avoid face cards too
           } else {
-            score -= 5; // Don't lead spades — partner can't win those easily
+            score -= 10; // Never lead spades when ducking
           }
         } else {
           // Team made bid — lead LOW to avoid bags, never lead winners
@@ -468,25 +468,22 @@ class AI {
           score -= card.value * 0.3; // Win cheaply
           if (card.isSpade && leadSuit !== 'spades') score -= 5;
         } else if (partnerNeedsTricks && teamNeedsTricks) {
-          // I've made my bid but PARTNER still needs tricks.
-          // Only win if partner CAN'T win this trick, or if there
-          // aren't enough tricks left for partner to make their bid.
+          // I've made my bid, partner still needs tricks.
+          // HARD DUCK: almost never win. Only exception: partner already
+          // played, is losing, AND there aren't enough tricks left.
           const partnerTricksNeeded = ctx ? (ctx.partnerBid - ctx.partnerTricks) : 0;
-          if (partnerTricksNeeded > tricksLeftInRound) {
-            // Not enough tricks left — we need to help
-            score += 6;
-          } else if (partnerPlayed) {
-            // Partner already played — if they're losing, we might
-            // need to win to prevent opponents from taking it
+          if (partnerTricksNeeded > tricksLeftInRound && partnerPlayed) {
+            // Desperate — not enough tricks left, partner already played and lost
             const partnerCard = trick.length >= 2 ? trick[trick.length - 2] : null;
             if (partnerCard && !this._isWinning(partnerCard, trick, leadSuit)) {
-              score += 3; // Partner is losing, maybe help
+              score += 3; // Reluctantly help
             } else {
-              score -= 6; // Partner is winning — don't overtake!
+              score -= 12; // Partner is winning — absolutely don't overtake
             }
           } else {
-            // Partner hasn't played yet — play low, let them win
-            score -= 5;
+            // Default: DON'T WIN. Play lowest possible card.
+            score -= 12;
+            if (card.isSpade) score -= 8;
           }
         } else {
           // TEAM MADE BID — extra tricks are BAGS. Avoid winning!
@@ -498,12 +495,15 @@ class AI {
       // ===== FACTOR 3: FOLLOWING — WE CAN'T WIN =====
       // Nothing we play will take this trick. Dump our worst cards.
       else {
-        // Prefer LOW cards — get rid of 2s and 3s when they're useless
-        // (+0.5 × (14 - value), so a 2 gets +6, an Ace gets +0)
-        score += (14 - card.value) * 0.5;
-
-        // SAVE SPADES for future tricks where they can actually win
-        if (!card.isSpade) score += 2;
+        if (!iNeedTricks && !partnerIsNil) {
+          // I've made my bid — dump HIGH cards to avoid winning future tricks
+          score += card.value * 0.5; // Prefer HIGH cards (dump winners)
+          if (card.isSpade) score += 3; // Dump spades — they win future tricks
+        } else {
+          // Still need tricks — save high cards, dump low
+          score += (14 - card.value) * 0.5;
+          if (!card.isSpade) score += 2; // Save spades
+        }
       }
 
       // ===== FACTOR 4: PARTNER AWARENESS (Hard only) =====
