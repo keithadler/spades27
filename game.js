@@ -1145,47 +1145,124 @@ class Game {
   _showRoundResults(callback) {
     const overlay = document.getElementById('message-overlay');
     overlay.classList.remove('hidden');
-    let html = `<div class="message-box"><h2 style="margin-bottom:16px;background:linear-gradient(180deg,#fff 20%,#4a90d9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">${this._t('roundResults')}</h2>`;
+
+    const pick = (arr) => arr && arr.length ? arr[Math.floor(Math.random() * arr.length)] : '';
+
+    let html = `<div class="message-box" style="max-width:540px;padding:28px 24px;">
+      <h2 style="margin-bottom:20px;font-size:1.6rem;background:linear-gradient(180deg,#fff 20%,#4a90d9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Round ${this._roundNum} Results</h2>`;
 
     if (this.teamMode && this.teams) {
       for (let t = 0; t < 2; t++) {
         const teamPlayers = this.players.filter(p => p.team === t);
-        const icon = t === 0 ? '🟢' : '🔴';
-        const teamBid = teamPlayers.reduce((s, p) => s + (p.bid > 0 ? p.bid : 0), 0);
+        const teamBid = teamPlayers.filter(p => p.bid > 0).reduce((s, p) => s + p.bid, 0);
         const teamTricks = teamPlayers.reduce((s, p) => s + p.tricks, 0);
-        const made = teamTricks >= teamBid;
+        const made = teamBid === 0 || teamTricks >= teamBid;
+        const bags = made ? Math.max(0, teamTricks - teamBid) : 0;
+        const isMyTeam = t === 0;
+        const borderColor = isMyTeam ? 'rgba(74,175,108,0.3)' : 'rgba(224,74,58,0.3)';
+        const bgColor = made ? 'rgba(74,175,108,0.06)' : 'rgba(224,74,58,0.06)';
+        const icon = isMyTeam ? '🟢' : '🔴';
 
-        html += `<div style="margin:12px 0;padding:12px;border-radius:10px;background:rgba(255,255,255,0.05);">`;
-        html += `<div style="font-weight:800;margin-bottom:8px;">${icon} ${teamPlayers.map(p => escHTML(p.name)).join(' & ')}</div>`;
+        html += `<div style="margin:10px 0;padding:16px;border-radius:14px;background:${bgColor};border:1.5px solid ${borderColor};">`;
+
+        // Team header with avatars
+        html += `<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;">`;
         for (const p of teamPlayers) {
-          const bidLabel = p.blindNil ? '🙈 Blind Nil' : p.bid === 0 ? '🎯 Nil' : 'Bid: ' + p.bid;
-          const bustTag = p.nilBusted ? ' <span style="color:#e04a3a;">BUST!</span>' : '';
-          html += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.9rem;">
-            <span>${escHTML(p.name)}</span>
-            <span>${bidLabel}${bustTag} | Won: ${p.tricks}</span>
+          html += `<img src="${p.avatar}" style="width:40px;height:40px;border-radius:50%;border:2px solid ${borderColor};">`;
+        }
+        html += `<div style="font-weight:900;font-size:1.1rem;">${icon} ${teamPlayers.map(p => escHTML(p.name)).join(' & ')}</div>`;
+        html += `</div>`;
+
+        // Individual player rows
+        for (const p of teamPlayers) {
+          const bidLabel = p.blindNil ? '🙈 BN' : p.bid === 0 ? '🎯 Nil' : p.bid;
+          const nilOk = p.bid === 0 && p.tricks === 0;
+          const nilBust = p.bid === 0 && p.tricks > 0;
+          const trickColor = nilBust ? '#e04a3a' : nilOk ? '#4aaf6c' : (p.bid > 0 && p.tricks >= p.bid) ? '#4aaf6c' : 'rgba(255,255,255,0.5)';
+          const statusIcon = nilBust ? '💥' : nilOk ? '✨' : (p.bid > 0 && p.tricks > p.bid) ? '🎒' : '';
+
+          html += `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;">
+            <img src="${p.avatar}" style="width:28px;height:28px;border-radius:50%;opacity:0.8;">
+            <span style="flex:1;font-weight:700;font-size:0.9rem;">${escHTML(p.name)}</span>
+            <span style="font-weight:800;color:#4a90d9;min-width:36px;text-align:center;">${bidLabel}</span>
+            <span style="font-weight:800;color:${trickColor};min-width:24px;text-align:center;">${p.tricks}</span>
+            <span style="font-size:0.85rem;min-width:20px;">${statusIcon}</span>
           </div>`;
         }
-        html += `<div style="margin-top:8px;font-weight:700;color:${made ? '#4aaf6c' : '#e04a3a'};">${made ? this._t('made') : this._t('set')}</div>`;
-        html += `<div style="font-size:0.85rem;opacity:0.6;">Score: ${this.teams[t].score} (${this.teams[t].bags} bags)</div>`;
+
+        // Result banner
+        const resultEmoji = made ? (bags === 0 ? '🎯' : bags >= 3 ? '🎒😬' : '✅') : '🚫';
+        const resultText = made ? (bags === 0 ? 'Perfect!' : this._t('made')) : this._t('set');
+        const resultColor = made ? '#4aaf6c' : '#e04a3a';
+        html += `<div style="margin-top:10px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.04);text-align:center;">
+          <span style="font-size:1.3rem;font-weight:900;color:${resultColor};">${resultEmoji} ${resultText}</span>
+          <div style="font-size:0.8rem;opacity:0.5;margin-top:2px;">Score: ${this.teams[t].score} · ${this.teams[t].bags} bags</div>
+        </div>`;
+
+        // Trash talk from AI players on this team
+        const aiOnTeam = teamPlayers.filter(p => !p.isHuman);
+        if (aiOnTeam.length > 0 && this._trashTalkFreq > 0) {
+          const talker = aiOnTeam[Math.floor(Math.random() * aiOnTeam.length)];
+          let phrase = '';
+          if (made && isMyTeam) phrase = getPhrase(talker, 'teammate');
+          else if (made && !isMyTeam) phrase = getPhrase(talker, 'opponent');
+          else if (!made && isMyTeam) phrase = getPhrase(talker, 'draw');
+          else if (!made && !isMyTeam) phrase = getPhrase(talker, 'win');
+          if (phrase) {
+            html += `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,0.03);">
+              <img src="${talker.avatar}" style="width:24px;height:24px;border-radius:50%;">
+              <span style="font-size:0.85rem;font-style:italic;opacity:0.8;">"${escHTML(phrase)}"</span>
+            </div>`;
+          }
+        }
+
         html += `</div>`;
       }
+
+      // Score comparison bar
+      const s0 = this.teams[0].score, s1 = this.teams[1].score;
+      const maxS = Math.max(Math.abs(s0), Math.abs(s1), 1);
+      const pct0 = Math.max(5, Math.round((Math.max(0, s0) / this.targetScore) * 100));
+      const pct1 = Math.max(5, Math.round((Math.max(0, s1) / this.targetScore) * 100));
+      html += `<div style="margin-top:12px;">
+        <div style="display:flex;gap:4px;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.06);">
+          <div style="width:${pct0}%;background:linear-gradient(90deg,#4aaf6c,#2d8a4e);border-radius:4px;transition:width 0.5s;"></div>
+          <div style="flex:1;"></div>
+          <div style="width:${pct1}%;background:linear-gradient(90deg,#e04a3a,#b83025);border-radius:4px;transition:width 0.5s;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.7rem;opacity:0.4;margin-top:4px;">
+          <span>🟢 ${s0}</span>
+          <span>${this._t('playingTo')} ${this.targetScore}</span>
+          <span>🔴 ${s1}</span>
+        </div>
+      </div>`;
+
     } else {
-      // Cutthroat: show each player individually
-      for (const p of this.players) {
+      // Cutthroat
+      const sorted = [...this.players].sort((a, b) => (b.score || 0) - (a.score || 0));
+      for (const p of sorted) {
         const made = p.bid === 0 ? p.tricks === 0 : p.tricks >= p.bid;
-        const bidLabel = p.blindNil ? '🙈 Blind Nil' : p.bid === 0 ? '🎯 Nil' : 'Bid: ' + p.bid;
-        const bustTag = p.nilBusted ? ' <span style="color:#e04a3a;">BUST!</span>' : '';
-        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
-          <span style="font-weight:700;">${escHTML(p.name)}</span>
-          <span>${bidLabel}${bustTag} | Won: ${p.tricks}</span>
-          <span style="font-weight:700;color:${made ? '#4aaf6c' : '#e04a3a'};">${made ? '✓' : '✗'}</span>
-          <span style="font-weight:800;color:#4a90d9;">${p.score || 0}</span>
+        const bidLabel = p.blindNil ? '�� BN' : p.bid === 0 ? '🎯 Nil' : p.bid;
+        const resultColor = made ? '#4aaf6c' : '#e04a3a';
+        html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+          <img src="${p.avatar}" style="width:32px;height:32px;border-radius:50%;">
+          <span style="flex:1;font-weight:700;">${escHTML(p.name)}</span>
+          <span style="font-weight:800;color:#4a90d9;">${bidLabel}</span>
+          <span style="font-weight:800;color:${resultColor};">${p.tricks}</span>
+          <span style="font-weight:900;color:#4a90d9;min-width:40px;text-align:right;">${p.score || 0}</span>
         </div>`;
       }
     }
 
     html += `<button id="round-results-ok" class="btn-start" style="margin-top:16px;">${this._t('continue_')}</button></div>`;
     overlay.innerHTML = html;
+
+    // Particles for winning team
+    if (this.teamMode && this.teams) {
+      const myMade = this.teams[0].score > 0;
+      if (myMade) spawnParticles(window.innerWidth / 2, window.innerHeight * 0.3, 12, 'particle-gold');
+    }
+
     document.getElementById('round-results-ok').addEventListener('click', () => {
       overlay.classList.add('hidden');
       callback();
