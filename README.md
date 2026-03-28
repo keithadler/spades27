@@ -14,17 +14,17 @@ python3 -m http.server 8080
 
 ## Features
 
-**Gameplay** — Full Spades rules with 2v2 partnership or cutthroat (FFA) modes, bidding with Nil support, trick-taking with spades as trump, "breaking spades" rule, bag tracking with 10-bag penalty, 3 AI difficulty levels, 5 AI personality types, and keyboard shortcuts.
+**Gameplay** — Full Spades rules with 2v2 partnership or cutthroat (FFA) modes, bidding with Nil and Blind Nil support, trick-taking with spades as trump, "breaking spades" rule, bag tracking with 10-bag penalty, 3 AI difficulty levels, 5 AI personality types, and keyboard shortcuts.
 
-**AI** — Each opponent gets a random generation (Gen Z, Millennial, Gen X, Boomer) that determines how they trash-talk. Personalities affect play style: Aggressive, Defensive, Chaotic, Calculated, Bully. Three difficulty levels from random play (Easy) to heuristic-optimized bidding and card counting (Hard).
+**AI** — 7-factor heuristic scoring engine with 3 difficulty levels. Easy plays like a beginner (leads high, wastes winners). Medium uses full heuristics with weighted randomness. Hard plays optimally with partner awareness, nil protection/busting, and bag warfare. Each opponent gets a random generation (Gen Z, Millennial, Gen X, Boomer) with culturally authentic Spades trash talk. 5 personalities: Aggressive, Defensive, Chaotic, Calculated, Bully.
 
-**Visuals** — Card animations, particle effects, score popups, thinking indicators, speech bubbles, avatar pulse on active turn, and victory confetti.
+**Visuals** — Cinematic deal animation with shuffle, 3-2-1 countdown, round announcements with avatars, card fly-in animations, screen shake on trick wins and spades broken, particle effects, score popups, combo counters, nil bust banners, floating turn arrow, ambient dust motes, time-of-day lighting, haptic feedback, and victory confetti.
 
-**i18n** — English, Spanish, Arabic (RTL), Chinese. Auto-detects browser language.
+**i18n** — English, Spanish, Arabic (full RTL), Chinese. Auto-detects browser language. Language picker on menu and in preferences. Full UI translations, translated rules, culturally authentic names/cities/trash talk per language.
 
-**Progression** — XP leveling, 13 achievements, lifetime stats (games, tricks, bags, nils, win streaks, play time).
+**Progression** — XP leveling, 13 achievements (First Victory, Nil Master, Blind Faith, Boston, Perfect Bid, Clean Game, and more), lifetime stats (games, tricks, bags, nils attempted/succeeded, win streaks, play time).
 
-**Quality of Life** — Dark/light theme, 6 table felt themes, game speed control (Fast/Normal/Slow), AI trash talk frequency slider, colorblind mode, prefers-reduced-motion support.
+**Quality of Life** — Dark/light theme, 6 table felt themes, game speed control (Fast/Normal/Slow), AI trash talk frequency slider (Off/Low/Normal/Max), colorblind mode, prefers-reduced-motion support.
 
 **Mobile** — Responsive across phones, tablets, and desktop. PWA installable. Touch support, safe area support for notched devices.
 
@@ -32,41 +32,65 @@ python3 -m http.server 8080
 
 | Mode | Players | Scoring |
 |------|---------|---------|
-| **2v2 Teams** | You + partner vs 2 opponents | Team bids combined, shared score & bags |
+| **2v2 Teams** | You + AI partner vs 2 AI opponents | Team bids combined, shared score & bags |
 | **Cutthroat** | 4-player free-for-all | Individual bids, individual scoring |
 
 ## How Spades Works
 
 1. **Deal** — 13 cards each from a standard 52-card deck
-2. **Bid** — Each player bids how many tricks they'll win (1–13, or Nil for zero)
-3. **Play** — 13 tricks. Must follow lead suit. Spades are trump. Can't lead spades until broken.
-4. **Score** — Make your bid: `bid × 10` + 1/bag. Miss it: `-bid × 10`. Nil success: +100. Nil fail: -100.
-5. **Bags** — Every 10 overtricks = -100 penalty. Don't win too many extras.
-6. **Win** — First to target score (default 500) wins.
+2. **Blind Nil?** — If your team is down 100+, you're offered Blind Nil (+200/−200) before seeing your cards
+3. **Bid** — Each player bids how many tricks they'll win (1–13, or Nil for zero). You see previous bids and scores.
+4. **Play** — 13 tricks. Must follow lead suit. Spades are trump. Can't lead spades until broken.
+5. **Score** — Make your bid: `bid × 10` + 1/bag. Miss it: `−bid × 10`. Nil: +100/−100. Blind Nil: +200/−200.
+6. **Bags** — Every 10 overtricks = −100 penalty. Don't win too many extras.
+7. **Win** — First to target score (default 500) wins. Game also ends if a team drops to −200.
+
+## AI Strategy
+
+The AI uses a 7-factor scoring system for card play:
+
+| Factor | What it does |
+|--------|-------------|
+| **F1: Leading** | Nil-protect / aggressive / hard-duck / bag-avoid modes |
+| **F2: Following (can win)** | Win cheaply when needed, hard-duck when done |
+| **F3: Following (can't win)** | Dump high cards when done, save high when not |
+| **F4: Partner awareness** | Don't overtake partner, rescue nil partner |
+| **F5: Nil protection** | Always win to cover partner's nil bid |
+| **F6: Nil busting** | Lead low to trap opponent nil, duck under winning nil |
+| **F7: Bag warfare** | Force bags on opponents, avoid own team's bags |
+
+Bidding uses conservative trick counting (floor, not round) with bag-aware adjustments and team overbid protection. Full details in the [ai.js source](ai.js).
 
 ## Keyboard Shortcuts
 
 | Key | Action |
 |-----|--------|
-| `1`–`9` | Select card by position |
+| `1`–`9` | Play card by position |
 | `M` | Open menu |
+| `R` | Rules |
+| `G` | Game log |
+| `A` | Stats & Achievements |
+| `E` | Preferences |
+| `?` | Toggle shortcuts panel |
 | `Esc` | Close any overlay |
 
 ## Project Structure
 
 ```
-├── index.html       — Single-page app shell
-├── styles.css       — Styles, animations, responsive breakpoints
-├── locales.js       — i18n: 4 languages, phrases, names, UI strings
+├── index.html       — Single-page app shell (all screens/overlays)
+├── styles.css       — Styles, animations, responsive, dark/light themes
+├── locales.js       — i18n: 4 languages, phrases, names, UI strings, rules
 ├── card.js          — Card class, deck creation, shuffle, sort
-├── player.js        — Player model (human + AI)
-├── ai.js            — AI engine: 3 difficulties, bidding + play heuristics
-├── audio.js         — Synthesized SFX + dynamic music engine
-├── stats.js         — Win/loss records, achievements, XP
-├── ui-helpers.js    — Avatars, themes, personalities, particles
-├── game.js          — Main game controller
-├── test.js          — Automated test suite (40 tests)
+├── player.js        — Player model (human + AI), nil/blindNil tracking
+├── ai.js            — AI engine: 7-factor scoring, 3 difficulties (~550 lines)
+├── audio.js         — Synthesized SFX + dynamic jazz music engine
+├── stats.js         — Win/loss records, 13 achievements, XP/leveling
+├── ui-helpers.js    — Avatars, themes, personalities, particles, ambient FX
+├── game.js          — Main game controller (~1600 lines)
+├── game-fx.js       — Visual effects: deal animation, popups, shake, particles
+├── test.js          — Automated test suite (48 tests)
 ├── manifest.json    — PWA manifest
+├── LICENSE          — MIT License
 └── README.md
 ```
 
@@ -82,13 +106,13 @@ python3 -m http.server 8080
 
 ```bash
 node test.js
-# 40 tests covering: deck, cards, shuffle, sort, player rules,
-# AI bidding, AI play, trick resolution
+# 48 tests covering: deck, cards, shuffle, sort, player rules,
+# nil/blindNil properties, AI bidding, AI play, trick resolution
 ```
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
 
 ## Attribution
 
