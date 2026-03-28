@@ -121,6 +121,10 @@ class Game {
     document.getElementById('rules-close-btn').addEventListener('click', () => {
       document.getElementById('rules-overlay').classList.add('hidden');
     });
+    document.getElementById('tutorial-btn').addEventListener('click', () => {
+      document.getElementById('game-dropdown').classList.add('hidden');
+      showTutorial();
+    });
     document.getElementById('shortcuts-btn').addEventListener('click', () => {
       document.getElementById('game-dropdown').classList.add('hidden');
       document.getElementById('shortcuts-overlay').classList.toggle('hidden');
