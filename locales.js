@@ -192,7 +192,7 @@ LOCALES.es = {
     colorblind: '♿ Modo Daltónico', language: 'Idioma',
     playerName: 'Jugador', accessibility: 'Accesibilidad',
     winsTrick: '¡{name} gana!', trickOf: 'Baza {n} de 13', noTricksYet: 'Aún no hay bazas',
-    bidBubble: 'Apuesta {n}', firstTrick: 'PRIMERA BAZA', points: 'puntos', back: '← Atrás',
+    bidBubble: 'Apuesta {n}', firstTrick: 'PRIMERA BAZA', points: 'puntos', back: '← Atrás', of: 'de',
     pass: 'Pasar', hint: '💡 Pista', trickCount: 'bazas', bidLabel: 'apuesta',
     selectBid: 'Elige tu apuesta', confirmBid: 'Confirmar apuesta', teamScore: 'Puntos del equipo', opponentScore: 'Puntos del rival',
     trickSummary: 'Bazas ganadas', bagPenalty: '¡Penalización de bolsas! -100', nilBonus: '¡Bono de Nulo! +100', nilFailed: '¡Nulo fallido! -100',
@@ -201,7 +201,7 @@ LOCALES.es = {
     winRate: 'Tasa de Victoria', bestStreak: 'Mejor Racha',
     totalScored: 'Puntos Totales', lifetime: 'Historial', achievements: 'Logros',
     playingTo: 'Jugando a', scoreboard: 'Puntos', pts: 'pts',
-    yourTeam: 'Tu Equipo', opponentsTeam: 'Oponentes', vsYou: 'vs tú', teammate: 'COMPAÑERO',
+    yourTeam: 'Tu Equipo', opponentsTeam: 'Oponentes', vsYou: 'contra ti', teammate: 'COMPAÑERO',
     achievementUnlocked: 'Logro Desbloqueado',
     startPlaying: '¡A Jugar!', next: 'Siguiente →', stepOf: 'de', step: 'Paso', skip: 'Saltar',
     newcomer: 'Nuevo', rookie: 'Novato', spadeMaster: 'Maestro', veteran: 'Veterano',
@@ -254,7 +254,7 @@ LOCALES.es = {
     teamDown: 'Tu equipo va perdiendo por', beforeSeeing: 'antes de ver tus cartas',
     noThanks: 'No gracias', goBlindNil: '¡Nulo Ciego!',
     perfect: '¡Perfecto!', dealer: 'Repartidor', leadsFirst: 'abre primero',
-    score: 'Puntos', vsYouRecord: 'vs tú',
+    score: 'Puntos', vsYouRecord: 'contra ti',
   }),
   p: {
     z: {
@@ -317,7 +317,7 @@ LOCALES.ar = {
     trashTalk: 'كلام اللاعبين', off: 'إيقاف', low: 'قليل', max: 'أقصى',
     playerName: 'لاعب', language: 'اللغة',
     winsTrick: '{name} يفوز!', trickOf: 'الأكلة {n} من 13', noTricksYet: 'لا أكلات بعد',
-    bidBubble: 'مزايدة {n}', firstTrick: 'الأكلة الأولى', points: 'نقطة', back: 'رجوع',
+    bidBubble: 'مزايدة {n}', firstTrick: 'الأكلة الأولى', points: 'نقطة', back: 'رجوع', of: 'من',
     resumeGame: '▶ استئناف اللعبة المحفوظة', copyLog: '📋 نسخ سجل اللعبة', copied: '✅ تم النسخ!', tutorial: '🎓 الشرح التعليمي',
     gameLog: '📋 سجل اللعبة', pass: 'تمرير', hint: '💡 تلميح', colorblind: '♿ وضع عمى الألوان',
     accessibility: 'إمكانية الوصول', totalScored: 'مجموع النقاط المسجلة', lifetime: 'الإجمالي', scoreboard: 'النقاط',
@@ -339,7 +339,7 @@ LOCALES.ar = {
     newcomer: 'جديد', rookie: 'مبتدئ', spadeMaster: 'أستاذ', veteran: 'محترف',
     regular: 'منتظم', apprentice: 'متدرب', beginner: 'مبتدئ',
     bidPhase: 'المزايدة', bid: 'مزايدة', yourBid: 'مزايدتك', nil: 'صفر', blindNil: 'صفر أعمى',
-    tricks: 'حيل', bags: 'أكياس', set: 'فشل!', made: 'نجح!',
+    tricks: 'أكلات', bags: 'أكياس', set: 'فشل!', made: 'نجح!',
     spadesBroken: '♠ البستوني انكسر!', bidSummary: 'المزايدات', roundResults: 'نتائج الجولة',
     gameTitle: 'سبيدز ٢٧', gameSubtitle: 'لعبة ورق',
     rerollOpponent: 'تغيير الخصم',
@@ -368,7 +368,7 @@ LOCALES.ar = {
     introAiCloseToWin: ['GG جاية 😎','قربنا 💀'],
     introAiTrailing: ['مو قلقان 😤','وقت الرجعة 🔄'],
     introAiLeading: ['امسكني لو تقدر 🏃','الضغط عليك 👀'],
-    bidTracker: 'مزايدة / حيل', bidsSoFar: 'المزايدات حتى الآن',
+    bidTracker: 'مزايدة / أكلات', bidsSoFar: 'المزايدات حتى الآن',
     teamDown: 'فريقك متأخر بـ', beforeSeeing: 'قبل ما تشوف أوراقك',
     noThanks: 'لا شكراً', goBlindNil: 'صفر أعمى!',
     perfect: 'مثالي!', dealer: 'الموزع', leadsFirst: 'يبدأ أولاً',
@@ -388,13 +388,13 @@ LOCALES.ar = {
       w: [['ما أقدر! 😭','حقيقي؟؟'],['نجحنا بالمزايدة! 🎯','مايك دروب 🎤'],['فشلوا 👑','أسطوري']]
     },
     x: {
-      o: [['هذي حيلتي.','أخذها.','البستوني ترمب يا ولد.'],['هكذا تلعب ♠ 😎','سلس.','من الكتاب.'],['اقعد يا ولد.','احسب أكياسك.','الحصة بدأت 📚']],
+      o: [['هذي أكلتي.','أخذها.','البستوني ترمب يا ولد.'],['هكذا تلعب ♠ 😎','سلس.','من الكتاب.'],['اقعد يا ولد.','احسب أكياسك.','الحصة بدأت 📚']],
       t: [['تغطية حلوة.','صلب.','ماشيين.'],['نطبخ الحين 🍳','المزايدات متناغمة.'],['ما يوقفنا.','بيفشلون.']],
       d: [['كيس واحد. عادي.','يصير.'],['صبر.','مريت بهالموقف.'],['تفتكر هذا يأثر؟','صبر استراتيجي.']],
       w: [['فزنا!','مو سيئ.','لسه عندي اللمسة.'],['نظيف 🧹','فعّال.'],['الخبرة مهمة.','الحصة انتهت 📚']]
     },
     b: {
-      o: [['يا سلام!','حيلتي!','لسه فيني!'],['هذا ترمب! 👆','بستوني المدرسة القديمة.','قريتها مثل كتاب 📖'],['أيامنا كنا نسمي هذا فشل!','احترم كبارك! 👴']],
+      o: [['يا سلام!','أكلتي!','لسه فيني!'],['هذا ترمب! 👆','بستوني المدرسة القديمة.','قريتها مثل كتاب 📖'],['أيامنا كنا نسمي هذا فشل!','احترم كبارك! 👴']],
       t: [['لعبة حلوة يا شريك!','فريق ممتاز!'],['مثل الآلة!','شغل فريق!'],['قوة ما توقف!','مستوى بطولات!']],
       d: [['يا حسرة. كيس.','ما علينا.'],['بس مطب.','الصبر مفتاح.'],['ربيت مراهقين. هذا ولا شي.','اللعبة الطويلة لعبتي.']],
       w: [['يا سلام فزنا!','لسه عندي اللمسة!'],['هكذا تلعب! 🎯','بستوني المدرسة القديمة!'],['عشان كذا تحترم الكبار! 👑','درس في الإتقان!']]
@@ -432,10 +432,10 @@ LOCALES.zh = {
     theme: '主题', dark: '🌙 深色', light: '☀️ 浅色',
     tableTheme: '桌面主题', audio: '音频',
     music: '🎵 背景音乐', sfx: '🔊 音效',
-    trashTalk: 'AI对话', off: '关', low: '少', max: '最多',
+    trashTalk: 'AI 垃圾话', off: '关', low: '少', max: '最多',
     playerName: '玩家', language: '语言',
     winsTrick: '{name} 获胜！', trickOf: '第 {n}/13 墩', noTricksYet: '还没有出牌记录',
-    bidBubble: '叫牌 {n}', firstTrick: '首墩', points: '分', back: '← 返回',
+    bidBubble: '叫牌 {n}', firstTrick: '首墩', points: '分', back: '← 返回', of: '/',
     resumeGame: '▶ 继续存档游戏', copyLog: '📋 复制游戏记录', copied: '✅ 已复制！', tutorial: '🎓 教程',
     gameLog: '📋 游戏记录', pass: '过', hint: '💡 提示', colorblind: '♿ 色盲模式',
     accessibility: '无障碍', totalScored: '总得分', lifetime: '生涯', scoreboard: '比分',
@@ -457,7 +457,7 @@ LOCALES.zh = {
     newcomer: '新手', rookie: '菜鸟', spadeMaster: '大师', veteran: '老手',
     regular: '常客', apprentice: '学徒', beginner: '初学者',
     bidPhase: '叫牌', bid: '叫牌', yourBid: '你的叫牌', nil: '零', blindNil: '盲零',
-    tricks: '墩', bags: '包', set: '失败！', made: '成功！',
+    tricks: '墩', bags: '袋子', set: '失败！', made: '成功！',
     spadesBroken: '♠ 黑桃已破！', bidSummary: '叫牌', roundResults: '回合结果',
     gameTitle: '黑桃 27', gameSubtitle: '纸牌游戏',
     rerollOpponent: '换对手',
@@ -496,7 +496,7 @@ LOCALES.zh = {
     z: {
       o: [['不是吧💀','运气来了','什么情况'],['太干净了🧹','你们没机会','纯实力'],['你们完了💀','gg','天生不同']],
       t: [['我们太强了💕','冲冲冲'],['我们在吃🔥','默契拉满'],['无敌💀','我们的时代']],
-      d: [['不是包😭','烂牌'],['小挫折','相信过程'],['战略性🧠','都在计划中']],
+      d: [['不是袋子😭','烂牌'],['小挫折','相信过程'],['战略性🧠','都在计划中']],
       w: [['我们赢了？？💀','不可能'],['冲🔥','结束了💅'],['吞噬了他们💀','传奇🐐']]
     },
     m: {
@@ -524,7 +524,7 @@ LOCALES.zh = {
 const RULES = {
   en: `<h3>🎯 The Goal</h3><p>Be the first team to reach the target score (usually 500). You play in partnerships — you and the player across from you vs. the other two.</p><h3>🃏 The Deal</h3><p>Standard 52-card deck. Each player gets <strong>13 cards</strong>. Spades are always trump.</p><h3>📢 Bidding</h3><p>Before play, each player bids how many tricks they think they'll win (1–13). Your team's bids are combined. You can also bid <strong>Nil</strong> (zero tricks) for a risky +100 bonus, or <strong>Blind Nil</strong> (+200) before seeing your cards when your team is down 100+.</p><h3>🎮 Playing Tricks</h3><p>The player left of the dealer leads first. You <strong>must follow the lead suit</strong> if you can. If you can't, you may play any card including spades (trump). Highest card of the lead suit wins, unless a spade was played — then highest spade wins.</p><h3>♠ Breaking Spades</h3><p>You can't lead with spades until someone has played a spade on a previous trick (or you only have spades left).</p><h3>💰 Scoring</h3><p>If your team makes its bid: <strong>bid × 10 points</strong> + 1 point per overtrick (bag). If you fail: <strong>−bid × 10 points</strong>.</p><h3>🎒 Bags</h3><p>Overtricks (bags) accumulate. Every <strong>10 bags = −100 penalty</strong>. Don't win too many extra tricks!</p><h3>🎯 Nil Bids</h3><p>Nil = promise to win zero tricks. Success: <strong>+100</strong>. Failure: <strong>−100</strong>. Blind Nil: <strong>+200/−200</strong>.</p><h3>💡 Tips</h3><p>🧮 Count tricks before bidding · ♠ Save spades for when you need them · 🤝 Watch your partner's plays · 🎒 Avoid bags near multiples of 10 · 🎯 Bust opponents' nil bids with low leads</p>`,
   es: `<h3>🎯 El Objetivo</h3><p>Sé el primer equipo en llegar al puntaje objetivo (normalmente 500). Juegas en parejas — tú y el jugador de enfrente contra los otros dos.</p><h3>🃏 El Reparto</h3><p>Baraja estándar de 52 cartas. Cada jugador recibe <strong>13 cartas</strong>. Las espadas siempre son triunfo.</p><h3>📢 Apuestas</h3><p>Antes de jugar, cada jugador apuesta cuántas bazas cree que ganará (1–13). Las apuestas del equipo se combinan. También puedes apostar <strong>Nulo</strong> (cero bazas) para un bono arriesgado de +100, o <strong>Nulo Ciego</strong> (+200) antes de ver tus cartas cuando tu equipo va perdiendo por 100+.</p><h3>🎮 Jugando Bazas</h3><p>El jugador a la izquierda del repartidor abre primero. <strong>Debes seguir el palo</strong> si puedes. Si no puedes, puedes jugar cualquier carta incluyendo espadas (triunfo).</p><h3>♠ Romper Espadas</h3><p>No puedes abrir con espadas hasta que alguien haya jugado una espada en una baza anterior.</p><h3>💰 Puntuación</h3><p>Si tu equipo cumple su apuesta: <strong>apuesta × 10 puntos</strong> + 1 punto por baza extra (bolsa). Si fallas: <strong>−apuesta × 10</strong>.</p><h3>🎒 Bolsas</h3><p>Las bazas extra se acumulan. Cada <strong>10 bolsas = −100 penalización</strong>.</p><h3>🎯 Apuestas Nulas</h3><p>Nulo = prometes ganar cero bazas. Éxito: <strong>+100</strong>. Fallo: <strong>−100</strong>. Nulo Ciego: <strong>+200/−200</strong>.</p>`,
-  ar: `<h3>🎯 الهدف</h3><p>كن أول فريق يصل للنتيجة المطلوبة (عادة 500). تلعب في شراكة — أنت واللاعب المقابل ضد الآخرين.</p><h3>🃏 التوزيع</h3><p>مجموعة ورق عادية 52 ورقة. كل لاعب يحصل على <strong>13 ورقة</strong>. البستوني دائماً ترمب.</p><h3>📢 المزايدة</h3><p>قبل اللعب، كل لاعب يزايد كم حيلة يتوقع يفوز (1-13). مزايدات الفريق تُجمع. تقدر تزايد <strong>صفر</strong> (لا حيل) لبونص +100، أو <strong>صفر أعمى</strong> (+200) قبل ما تشوف أوراقك.</p><h3>🎮 لعب الحيل</h3><p>اللاعب يسار الموزع يبدأ. <strong>لازم تتبع اللون</strong> لو عندك. لو ما عندك، تقدر تلعب أي ورقة بما فيها البستوني.</p><h3>♠ كسر البستوني</h3><p>ما تقدر تفتح ببستوني إلا لو أحد لعب بستوني قبل كذا.</p><h3>💰 النقاط</h3><p>لو فريقك نجح: <strong>مزايدة × 10 نقاط</strong> + 1 لكل حيلة زيادة (كيس). لو فشل: <strong>−مزايدة × 10</strong>.</p><h3>🎒 الأكياس</h3><p>الحيل الزيادة تتراكم. كل <strong>10 أكياس = −100</strong>.</p><h3>🎯 مزايدة الصفر</h3><p>صفر = تعد ما تفوز بأي حيلة. نجاح: <strong>+100</strong>. فشل: <strong>−100</strong>. صفر أعمى: <strong>+200/−200</strong>.</p>`,
+  ar: `<h3>🎯 الهدف</h3><p>كن أول فريق يصل للنتيجة المطلوبة (عادة 500). تلعب في شراكة — أنت واللاعب المقابل ضد الآخرين.</p><h3>🃏 التوزيع</h3><p>مجموعة ورق عادية 52 ورقة. كل لاعب يحصل على <strong>13 ورقة</strong>. البستوني دائماً ترمب.</p><h3>📢 المزايدة</h3><p>قبل اللعب، كل لاعب يزايد كم أكلة يتوقع يفوز (1-13). مزايدات الفريق تُجمع. تقدر تزايد <strong>صفر</strong> (بدون أكلات) لبونص +100، أو <strong>صفر أعمى</strong> (+200) قبل ما تشوف أوراقك.</p><h3>🎮 لعب الأكلات</h3><p>اللاعب يسار الموزع يبدأ. <strong>لازم تتبع اللون</strong> لو عندك. لو ما عندك، تقدر تلعب أي ورقة بما فيها البستوني.</p><h3>♠ كسر البستوني</h3><p>ما تقدر تفتح ببستوني إلا لو أحد لعب بستوني قبل كذا.</p><h3>💰 النقاط</h3><p>لو فريقك نجح: <strong>مزايدة × 10 نقاط</strong> + 1 لكل أكلة زيادة (كيس). لو فشل: <strong>−مزايدة × 10</strong>.</p><h3>🎒 الأكياس</h3><p>الأكلات الزيادة تتراكم. كل <strong>10 أكياس = −100</strong>.</p><h3>🎯 مزايدة الصفر</h3><p>صفر = تعد ما تفوز بأي أكلة. نجاح: <strong>+100</strong>. فشل: <strong>−100</strong>. صفر أعمى: <strong>+200/−200</strong>.</p>`,
   zh: `<h3>🎯 目标</h3><p>率先达到目标分数（通常500分）。你和对面的玩家组队，对抗另外两人。</p><h3>🃏 发牌</h3><p>标准52张牌。每人<strong>13张</strong>。黑桃永远是王牌。</p><h3>📢 叫牌</h3><p>出牌前，每人预测自己能赢几墩（1-13）。队伍的叫牌合并计算。你也可以叫<strong>零</strong>（不赢任何墩）获得+100奖励，或在落后100+分时叫<strong>盲零</strong>（+200）。</p><h3>🎮 出牌</h3><p>庄家左边的玩家先出。你<strong>必须跟花色</strong>。如果没有该花色，可以出任何牌包括黑桃（王牌）。</p><h3>♠ 破黑桃</h3><p>在有人出过黑桃之前，不能用黑桃领出。</p><h3>💰 计分</h3><p>完成叫牌：<strong>叫牌数 × 10分</strong> + 每多赢1墩得1分（包）。失败：<strong>−叫牌数 × 10分</strong>。</p><h3>🎒 包</h3><p>多赢的墩数累积。每<strong>10个包 = −100分</strong>。</p><h3>🎯 零叫牌</h3><p>零 = 承诺不赢任何墩。成功：<strong>+100</strong>。失败：<strong>−100</strong>。盲零：<strong>+200/−200</strong>。</p>`
 };
 
@@ -564,12 +564,12 @@ function detectBrowserLang() {
 
 // Localized tutorial steps (EN lives in ui-helpers.js TUTORIAL_STEPS as the fallback)
 LOCALES.es.tutSteps = [
-  { title: '👋 ¡Bienvenido a Spades!', body: 'Un juego de bazas donde <strong>las picas siempre son triunfo</strong>. Juega con un compañero contra dos rivales. El primer equipo en llegar a la puntuación objetivo gana.' },
+  { title: '👋 ¡Bienvenido a Spades!', body: 'Un juego de bazas donde <strong>las espadas siempre son triunfo</strong>. Juega con un compañero contra dos rivales. El primer equipo en llegar a la puntuación objetivo gana.' },
   { title: '🃏 El Reparto', body: 'Cada jugador recibe <strong>13 cartas</strong> de una baraja estándar de 52. Las cartas van del 2 (la más baja) al As (la más alta).' },
   { title: '📢 Las Apuestas', body: 'Antes de jugar, cada jugador <strong>apuesta</strong> cuántas bazas espera ganar (1-13). Las apuestas de tu equipo se suman. Apuesta con cuidado: ¡pasarse sale caro!' },
   { title: '🎯 Nulo y Nulo Ciego', body: '<strong>Nulo</strong> = apostar cero bazas (+100 si lo logras, -100 si fallas). <strong>Nulo Ciego</strong> = apostar cero antes de ver tus cartas (+200/-200). Mucho riesgo, mucha recompensa.' },
-  { title: '🎮 Jugando Bazas', body: 'El jugador a la izquierda del repartidor sale primero. <strong>Debes seguir el palo de salida</strong>. ¿No puedes? Juega cualquier carta, incluso picas para <strong>fallar</strong>.' },
-  { title: '♠ Romper Picas', body: 'No puedes salir con picas hasta que alguien haya jugado una pica en una baza anterior. Una vez rotas, puedes salir con picas libremente.' },
+  { title: '🎮 Jugando Bazas', body: 'El jugador a la izquierda del repartidor sale primero. <strong>Debes seguir el palo de salida</strong>. ¿No puedes? Juega cualquier carta, incluso espadas para <strong>fallar</strong>.' },
+  { title: '♠ Romper Espadas', body: 'No puedes salir con espadas hasta que alguien haya jugado una espada en una baza anterior. Una vez rotas, puedes salir con espadas libremente.' },
   { title: '💰 Puntuación', body: 'Cumple tu apuesta: <strong>apuesta × 10 puntos</strong> + 1 por baza extra (bolsa). Falla: <strong>-apuesta × 10</strong>. ¡Cada <strong>10 bolsas = -100 de castigo</strong>!' },
   { title: '🤝 Trabajo en Equipo', body: 'Tu compañero se sienta enfrente. Observa sus jugadas y no le quites bazas ganadas. Si apuesta Nulo, cúbrelo ganando bazas.' },
   { title: '🚀 ¡Listo!', body: 'El primero en llegar a la <strong>puntuación objetivo</strong> gana. Usa el marcador de apuestas en la mesa. Pulsa <strong>?</strong> para los atajos de teclado. ¡Buena suerte!' },
