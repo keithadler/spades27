@@ -534,33 +534,27 @@ class Game {
   }
 
   _buildBidsSoFar() {
-    // Score display
-    let html = '<div style="margin:8px 0 12px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.05);">';
+    // Compact score strip
+    let html = '<div class="bid-score-strip">';
     if (this.teamMode && this.teams) {
-      html += `<div style="display:flex;justify-content:space-around;text-align:center;">
-        <div><div style="font-size:0.6rem;opacity:0.4;text-transform:uppercase;letter-spacing:1px;">🟢 ${this._t('yourTeam')}</div><div style="font-size:1.3rem;font-weight:900;color:#4aaf6c;">${this.teams[0].score}</div><div style="font-size:0.6rem;opacity:0.3;">${this.teams[0].bags} 🎒</div></div>
-        <div style="align-self:center;opacity:0.2;font-weight:800;">vs</div>
-        <div><div style="font-size:0.6rem;opacity:0.4;text-transform:uppercase;letter-spacing:1px;">🔴 ${this._t('opponentsTeam')}</div><div style="font-size:1.3rem;font-weight:900;color:#e04a3a;">${this.teams[1].score}</div><div style="font-size:0.6rem;opacity:0.3;">${this.teams[1].bags} 🎒</div></div>
-      </div>`;
+      html += `<span class="bss-side">🟢 ${this._t('yourTeam')} <b class="bss-green">${this.teams[0].score}</b></span>
+        <span class="bss-vs">vs</span>
+        <span class="bss-side">🔴 ${this._t('opponentsTeam')} <b class="bss-red">${this.teams[1].score}</b></span>`;
     } else {
-      html += '<div style="display:flex;justify-content:space-around;text-align:center;flex-wrap:wrap;gap:8px;">';
       for (const p of this.players) {
-        html += `<div><div style="font-size:0.6rem;opacity:0.4;">${escHTML(p.name)}</div><div style="font-size:1.1rem;font-weight:900;color:#4a90d9;">${p.score || 0}</div></div>`;
+        html += `<span class="bss-side">${escHTML(p.name)} <b class="bss-blue">${p.score || 0}</b></span>`;
       }
-      html += '</div>';
     }
-    html += `<div style="font-size:0.6rem;opacity:0.3;text-align:center;margin-top:4px;">${this._t('playingTo')} ${this.targetScore}</div>`;
-    html += '</div>';
+    html += `<span class="bss-target">${this._t('playingTo')} ${this.targetScore}</span></div>`;
 
-    // Bids placed so far
+    // Bids placed so far, as chips
     const bidsMade = this.players.filter(p => p.hasBid);
     if (bidsMade.length > 0) {
-      html += '<div style="margin:0 0 12px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.05);">';
-      html += '<div style="font-size:0.7rem;opacity:0.4;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">' + this._t('bidsSoFar') + '</div>';
+      html += `<div class="bids-so-far"><span class="bsf-label">${this._t('bidsSoFar')}</span>`;
       for (const p of bidsMade) {
         const icon = this.teamMode ? (p.team === 0 ? '🟢' : '🔴') : '';
-        const bidText = p.blindNil ? '🙈 Blind Nil' : p.bid === 0 ? '🎯 Nil' : p.bid;
-        html += `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>${icon} ${escHTML(p.name)}</span><span style="font-weight:800;color:#4a90d9;">${bidText}</span></div>`;
+        const bidText = p.blindNil ? '🙈 BN' : p.bid === 0 ? '🎯 Nil' : p.bid;
+        html += `<span class="bsf-chip">${icon} ${escHTML(p.name)} <b>${bidText}</b></span>`;
       }
       html += '</div>';
     }
@@ -575,8 +569,17 @@ class Game {
       <h2>${this._t('yourBid')}</h2>
       ${bidsHtml}
       <div class="bid-hand-preview">`;
-    for (const card of player.hand) {
-      html += `<span class="bid-card" style="color:${card.color}">${card.displayName}</span>`;
+    // Group the hand by suit — reads like a real hand evaluation
+    for (const suit of SUITS) {
+      const cards = player.hand.filter(c => c.suit === suit);
+      const sample = new Card(suit, 'A');
+      html += `<div class="bid-suit-row"><span class="bid-suit-icon" data-suit="${suit}">${sample.symbol}</span><span class="bid-suit-cards">`;
+      if (cards.length === 0) {
+        html += `<span class="bid-void">-</span>`;
+      } else {
+        html += cards.map(c => `<span class="bid-card" style="color:${c.color}">${c.rank}</span>`).join('');
+      }
+      html += `</span></div>`;
     }
     html += `</div><div class="bid-buttons">`;
     html += `<button class="bid-btn bid-nil" data-bid="0">${this._t('nil')}</button>`;
