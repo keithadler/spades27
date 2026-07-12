@@ -387,7 +387,7 @@ class Game {
 
   _resumeGame() {
     if (!this._loadGameState()) return;
-    this.sfx = new SFX();
+    if (!this.sfx) this.sfx = new SFX();
     if (this.music) { this.music.init(); this.music.start(); }
     this.showScreen('game-screen');
     this._updateXPBar();
@@ -514,11 +514,11 @@ class Game {
     let bidsHtml = this._buildBidsSoFar();
     overlay.innerHTML = `<div class="bid-panel">
       <h2>🙈 ${this._t('blindNil')}?</h2>
-      <p style="opacity:0.7;margin-bottom:12px;line-height:1.6;">Your team is down by ${gap} points.<br>
-      Bid Blind Nil <strong>before seeing your cards</strong> for +200 if you win zero tricks, -200 if you fail.</p>
+      <p style="opacity:0.7;margin-bottom:12px;line-height:1.6;">${this._t('teamDown')} ${gap} ${this._t('points')}.<br>
+      ${this._t('blindNil')} <strong>${this._t('beforeSeeing')}</strong>: +200 / -200</p>
       ${bidsHtml}
       <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;">
-        <button id="blind-nil-yes" class="btn-start" style="background:linear-gradient(145deg,#a855f7,#7c3aed);padding:14px 28px;">🙈 Go Blind Nil!</button>
+        <button id="blind-nil-yes" class="btn-start" style="background:linear-gradient(145deg,#a855f7,#7c3aed);padding:14px 28px;">🙈 ${this._t('goBlindNil')}</button>
         <button id="blind-nil-no" class="btn-start" style="background:linear-gradient(145deg,rgba(255,255,255,0.15),rgba(255,255,255,0.05));color:#fff;box-shadow:none;padding:14px 28px;">${this._t('noThanks')}</button>
       </div>
     </div>`;
@@ -538,9 +538,9 @@ class Game {
     let html = '<div style="margin:8px 0 12px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.05);">';
     if (this.teamMode && this.teams) {
       html += `<div style="display:flex;justify-content:space-around;text-align:center;">
-        <div><div style="font-size:0.6rem;opacity:0.4;text-transform:uppercase;letter-spacing:1px;">🟢 Your Team</div><div style="font-size:1.3rem;font-weight:900;color:#4aaf6c;">${this.teams[0].score}</div><div style="font-size:0.6rem;opacity:0.3;">${this.teams[0].bags} bags</div></div>
+        <div><div style="font-size:0.6rem;opacity:0.4;text-transform:uppercase;letter-spacing:1px;">🟢 ${this._t('yourTeam')}</div><div style="font-size:1.3rem;font-weight:900;color:#4aaf6c;">${this.teams[0].score}</div><div style="font-size:0.6rem;opacity:0.3;">${this.teams[0].bags} 🎒</div></div>
         <div style="align-self:center;opacity:0.2;font-weight:800;">vs</div>
-        <div><div style="font-size:0.6rem;opacity:0.4;text-transform:uppercase;letter-spacing:1px;">🔴 Opponents</div><div style="font-size:1.3rem;font-weight:900;color:#e04a3a;">${this.teams[1].score}</div><div style="font-size:0.6rem;opacity:0.3;">${this.teams[1].bags} bags</div></div>
+        <div><div style="font-size:0.6rem;opacity:0.4;text-transform:uppercase;letter-spacing:1px;">🔴 ${this._t('opponentsTeam')}</div><div style="font-size:1.3rem;font-weight:900;color:#e04a3a;">${this.teams[1].score}</div><div style="font-size:0.6rem;opacity:0.3;">${this.teams[1].bags} 🎒</div></div>
       </div>`;
     } else {
       html += '<div style="display:flex;justify-content:space-around;text-align:center;flex-wrap:wrap;gap:8px;">';
@@ -1107,9 +1107,17 @@ class Game {
     this._renderTrickInfo();
     this._updateFloatingArrow();
     this._renderBidTracker();
-    // Always render human hand — even when empty (clears the last card from DOM)
+    // Always render human hand — even when empty (clears the last card from DOM).
+    // Compute real playability so mid-turn re-renders (name edit, skin change,
+    // colorblind toggle) don't strip the click handlers and softlock the turn.
     if (this.players[0]) {
-      this._renderHumanHand(this.players[0], []);
+      const p0 = this.players[0];
+      const canAct = this.currentPlayer === 0 && !this._playLock && this._trickNum >= 1
+        && !this.roundOver && !this.gameOver;
+      const playable = canAct
+        ? p0.getPlayableCards(this.trick.length ? this.trick[0].card.suit : null, this.spadesBroken)
+        : [];
+      this._renderHumanHand(p0, playable);
     }
   }
 
@@ -1292,7 +1300,7 @@ class Game {
     const info = document.getElementById('trick-info');
     if (!info) return;
     if (this._trickNum > 0 && this._trickNum <= 13) {
-      info.textContent = `Trick ${this._trickNum} of 13`;
+      info.textContent = this._t('trickOf').replace('{n}', this._trickNum);
     } else {
       info.textContent = '';
     }
@@ -1391,7 +1399,7 @@ class Game {
   _showTrickWinner(winner, callback) {
     const el = document.createElement('div');
     el.className = 'trick-winner-popup';
-    el.innerHTML = `<img src="${winner.avatar}" style="width:40px;height:40px;border-radius:50%;" alt=""> ${escHTML(winner.name)} wins!`;
+    el.innerHTML = `<img src="${winner.avatar}" style="width:40px;height:40px;border-radius:50%;" alt=""> ${this._t('winsTrick').replace('{name}', escHTML(winner.name))}`;
     document.body.appendChild(el);
     spawnParticles(window.innerWidth / 2, window.innerHeight / 2, 10, 'particle-gold');
     setTimeout(() => { el.remove(); callback(); }, this._speedMs(1200));
@@ -1404,7 +1412,7 @@ class Game {
     const pick = (arr) => arr && arr.length ? arr[Math.floor(Math.random() * arr.length)] : '';
 
     let html = `<div class="message-box" style="max-width:540px;padding:28px 24px;">
-      <h2 style="margin-bottom:20px;font-size:1.6rem;background:linear-gradient(180deg,#fff 20%,#4a90d9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Round ${this._roundNum} Results</h2>`;
+      <h2 style="margin-bottom:20px;font-size:1.6rem;background:linear-gradient(180deg,#fff 20%,#4a90d9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">${this._t('round')} ${this._roundNum} · ${this._t('roundResults')}</h2>`;
 
     if (this.teamMode && this.teams) {
       for (let t = 0; t < 2; t++) {
@@ -1662,6 +1670,8 @@ class Game {
         <div class="skin-options" id="card-skin-options">
           ${CARD_SKINS.map(s => `<div class="skin-option ${s.id === getCardSkin() ? 'active' : ''}" data-skin="${s.id}"><div class="skin-preview" style="background:linear-gradient(135deg,${s.face},${s.faceDark});border:1.5px solid rgba(0,0,0,0.2);"></div><span>${s.name}</span></div>`).join('')}
         </div></div>
+      <div class="pref-group"><div class="pref-label">${this._t('accessibility')}</div>
+        <div class="toggle-row"><span>${this._t('colorblind')}</span><label class="toggle-switch"><input type="checkbox" id="colorblind-toggle-cb" ${this._colorblindMode?'checked':''}><span class="toggle-slider"></span></label></div></div>
       <div class="pref-group"><div class="pref-label">${this._t('audio')}</div>
         <div class="toggle-row"><span>${this._t('music')}</span><label class="toggle-switch"><input type="checkbox" id="music-toggle-cb" ${musicOn?'checked':''}><span class="toggle-slider"></span></label></div>
         <div class="toggle-row"><span>${this._t('sfx')}</span><label class="toggle-switch"><input type="checkbox" id="sfx-toggle-cb" ${sfxOn?'checked':''}><span class="toggle-slider"></span></label></div></div>
@@ -1702,6 +1712,14 @@ class Game {
     }
     document.getElementById('music-toggle-cb')?.addEventListener('change', () => { if (this.music) { this.music.init(); this.music.toggle(); } });
     document.getElementById('sfx-toggle-cb')?.addEventListener('change', (e) => { this._soundMuted = !e.target.checked; localStorage.setItem('spades_muted', this._soundMuted ? '1' : '0'); });
+    document.getElementById('colorblind-toggle-cb')?.addEventListener('change', (e) => {
+      this._colorblindMode = e.target.checked;
+      localStorage.setItem('spades_colorblind', this._colorblindMode ? '1' : '0');
+      document.body.classList.toggle('colorblind', this._colorblindMode);
+      this._lastHandState = null; // force card re-render with new colors
+      this._updateUI();
+      this._renderTrickArea();
+    });
     const trashOpts = document.getElementById('pref-trash-talk');
     if (trashOpts) {
       trashOpts.querySelectorAll('.skin-option').forEach(el => {
@@ -1743,7 +1761,7 @@ class Game {
     if (!container) return;
     container.innerHTML = '';
     if (!this.gameLog || this.gameLog.length === 0) {
-      container.innerHTML = '<div style="opacity:0.4;text-align:center;padding:20px;">No tricks yet</div>';
+      container.innerHTML = `<div style="opacity:0.4;text-align:center;padding:20px;">${this._t('noTricksYet')}</div>`;
       return;
     }
     for (let i = this.gameLog.length - 1; i >= 0; i--) {
@@ -1794,7 +1812,9 @@ class Game {
         const idx = pi - 1;
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          const np = pickRandomNames(1)[0];
+          // Avoid duplicating an opponent already at the table
+          const taken = this._previewNames.filter((_, i2) => i2 !== idx);
+          const np = pickRandomNames(8).find(c => !taken.includes(c.name)) || pickRandomNames(1)[0];
           this._previewNames[idx] = np.name; this._previewCities[idx] = np.city;
           this._previewSeeds[idx] = np.name + '-' + idx + '-' + Date.now();
           this._previewPersonalities[idx] = AI_PERSONALITIES[Math.floor(Math.random()*AI_PERSONALITIES.length)];
@@ -1856,6 +1876,7 @@ class Game {
     setTxt('#start-game', u.startGame);
     setTxt('#rematch-btn', u.rematch);
     setTxt('#play-again', u.newGame);
+    setTxt('#ragequit-loss-note', u.rageQuitLossNote);
 
     // Menu labels
     const labels = document.querySelectorAll('.option-group label');

@@ -66,10 +66,11 @@ Object.assign(Game.prototype, {
       if (this.sfx) this.sfx.shuffle();
       shuffleCount++;
       if (shuffleCount >= 4) clearInterval(shuffleInterval);
-    }, 220);
+    }, this._speedMs(220));
 
-    // Phase 3: Deal cards to player positions
-    const dealStart = 1100;
+    // Phase 3: Deal cards to player positions (honors the game speed setting)
+    const dealStart = this._speedMs(1100);
+    const perCard = this._speedMs(50);
     const positions = {
       bottom: { x: cx, y: window.innerHeight - 100 },
       top: { x: cx, y: 80 },
@@ -82,7 +83,7 @@ Object.assign(Game.prototype, {
       for (let pi = 0; pi < 4; pi++) {
         const idx = dealt;
         if (idx >= pileEls.length) continue;
-        const delay = dealStart + dealt * 50;
+        const delay = dealStart + dealt * perCard;
         dealt++;
         setTimeout(() => {
           const pos = this._getPlayerPosition(pi);
@@ -99,7 +100,7 @@ Object.assign(Game.prototype, {
       }
     }
 
-    const totalTime = dealStart + dealt * 50 + 500;
+    const totalTime = dealStart + dealt * perCard + this._speedMs(500);
     setTimeout(callback, totalTime);
   },
 
@@ -117,7 +118,7 @@ Object.assign(Game.prototype, {
     el.style.cssText = 'position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;pointer-events:none;';
     el.innerHTML = `
       <div style="text-align:center;animation:announceIn 0.5s ease-out forwards;">
-        <div style="font-size:1.2rem;font-weight:700;letter-spacing:12px;color:rgba(255,255,255,0.5);text-transform:uppercase;text-shadow:0 2px 8px rgba(0,0,0,0.6);opacity:0;animation:raSlideDown 0.5s ease-out 0.1s forwards;">ROUND</div>
+        <div style="font-size:1.2rem;font-weight:700;letter-spacing:12px;color:rgba(255,255,255,0.5);text-transform:uppercase;text-shadow:0 2px 8px rgba(0,0,0,0.6);opacity:0;animation:raSlideDown 0.5s ease-out 0.1s forwards;">${this._t('round')}</div>
         <div style="font-size:8rem;font-weight:900;line-height:1;background:linear-gradient(180deg,#fff 10%,#4a90d9 40%,#2a60a0 70%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 40px rgba(74,144,217,0.5)) drop-shadow(0 4px 12px rgba(0,0,0,0.8));opacity:0;animation:raNumberPop 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.3s forwards;">${this._roundNum}</div>
         <div style="width:120px;height:2px;margin:12px auto 20px;background:linear-gradient(90deg,transparent,#4a90d9,transparent);opacity:0;animation:raFadeIn 0.4s ease-out 0.7s forwards;"></div>
         <div style="display:flex;align-items:center;justify-content:center;gap:16px;opacity:0;animation:raSlideUp 0.5s ease-out 0.8s forwards;">
@@ -332,7 +333,7 @@ Object.assign(Game.prototype, {
     if (panel) {
       const bubble = document.createElement('div');
       bubble.className = 'speech-bubble bid-bubble';
-      bubble.textContent = player.blindNil ? '🙈 BLIND NIL!' : bid === 0 ? '🎯 NIL!' : `Bid ${bid}`;
+      bubble.textContent = player.blindNil ? '🙈 BLIND NIL!' : bid === 0 ? '🎯 NIL!' : this._t('bidBubble').replace('{n}', bid);
       const r = panel.getBoundingClientRect();
 
       // Position based on player side
@@ -366,7 +367,7 @@ Object.assign(Game.prototype, {
   _showFirstBlood(winner) {
     const el = document.createElement('div');
     el.className = 'first-blood-banner';
-    el.textContent = `FIRST TRICK 🃏`;
+    el.textContent = `${this._t('firstTrick')} 🃏`;
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 1500);
   },
