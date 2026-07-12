@@ -36,7 +36,7 @@ class Game {
     this._trickNum = 0;
 
     this._playTimeInterval = setInterval(() => {
-      if (!this.gameOver && this.players.length > 0) trackPlayTime(60);
+      if (!this.gameOver && this.players.length > 0 && document.visibilityState === 'visible') trackPlayTime(60);
     }, 60000);
 
     this._initUI();
@@ -345,7 +345,11 @@ class Game {
       spadesBroken: this.spadesBroken, roundNum: this._roundNum,
       trickNum: this._trickNum, trickLeader: this.trickLeader,
       trick: this.trick.map(t => ({ suit: t.card.suit, rank: t.card.rank, playerIndex: t.playerIndex })),
-      gameLog: this.gameLog
+      gameLog: this.gameLog,
+      wasDown100: this._wasDown100 || false,
+      gameBagsAccrued: this._gameBagsAccrued || 0,
+      lastTrickWinner: this._lastTrickWinner ?? -1,
+      trickCombo: this._trickCombo || 0
     };
     localStorage.setItem('spades_saved_game', JSON.stringify(state));
   }
@@ -371,6 +375,10 @@ class Game {
       this._trickNum = s.trickNum; this.trickLeader = s.trickLeader;
       this.trick = s.trick.map(t => ({ card: new Card(t.suit, t.rank), playerIndex: t.playerIndex }));
       this.gameLog = s.gameLog || [];
+      this._wasDown100 = s.wasDown100 || false;
+      this._gameBagsAccrued = s.gameBagsAccrued || 0;
+      this._lastTrickWinner = s.lastTrickWinner ?? -1;
+      this._trickCombo = s.trickCombo || 0;
       this.roundOver = false; this.gameOver = false; this._playLock = false;
       localStorage.removeItem('spades_saved_game');
       return true;
@@ -514,8 +522,15 @@ class Game {
         <button id="blind-nil-no" class="btn-start" style="background:linear-gradient(145deg,rgba(255,255,255,0.15),rgba(255,255,255,0.05));color:#fff;box-shadow:none;padding:14px 28px;">${this._t('noThanks')}</button>
       </div>
     </div>`;
-    document.getElementById('blind-nil-yes').addEventListener('click', () => { overlay.classList.add('hidden'); callback(true); });
-    document.getElementById('blind-nil-no').addEventListener('click', () => { overlay.classList.add('hidden'); callback(false); });
+    let answered = false;
+    const answer = (accepted) => {
+      if (answered) return;
+      answered = true;
+      overlay.classList.add('hidden'); overlay.innerHTML = '';
+      callback(accepted);
+    };
+    document.getElementById('blind-nil-yes').addEventListener('click', () => answer(true));
+    document.getElementById('blind-nil-no').addEventListener('click', () => answer(false));
   }
 
   _buildBidsSoFar() {
@@ -570,12 +585,15 @@ class Game {
     }
     html += `</div></div>`;
     overlay.innerHTML = html;
+    let bidPlaced = false;
     overlay.querySelectorAll('.bid-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (bidPlaced) return;
+        bidPlaced = true;
         player.bid = parseInt(btn.dataset.bid);
         player.blindNil = false;
         if (player.bid === 0) trackStat('nilsAttempted');
-        overlay.classList.add('hidden');
+        overlay.classList.add('hidden'); overlay.innerHTML = '';
         if (this.sfx) { player.bid === 0 ? this.sfx.nilBid() : this.sfx.bid(); }
         this._currentBidIdx++;
         this._doBid();
@@ -601,7 +619,11 @@ class Game {
     }
     html += `<button id="bid-summary-ok" class="btn-start" style="margin-top:16px;">${this._t('continue_')}</button></div>`;
     overlay.innerHTML = html;
-    document.getElementById('bid-summary-ok').addEventListener('click', () => { overlay.classList.add('hidden'); callback(); });
+    document.getElementById('bid-summary-ok').addEventListener('click', () => {
+      if (overlay.classList.contains('hidden')) return;
+      overlay.classList.add('hidden'); overlay.innerHTML = '';
+      callback();
+    }, { once: true });
   }
 
   // === PRE-ROUND COMMENTS ===
@@ -841,6 +863,9 @@ class Game {
     this.roundOver = true;
     trackStat('totalRounds');
 
+    let humanRoundScore = 0;
+    const setTeams = [];
+
     if (this.teamMode) {
       // === TEAM SCORING ===
       for (let t = 0; t < 2; t++) {
@@ -874,10 +899,12 @@ class Game {
             while (this.teams[t].bags >= 10) { this.teams[t].bags -= 10; roundScore -= 100; if (this.sfx && t === 0) this.sfx.bagPenalty(); }
           } else {
             roundScore = -nonNilBid * 10;
+            setTeams.push(t);
           }
         }
         roundScore += nilBonuses;
         this.teams[t].score += roundScore;
+        if (t === 0) humanRoundScore = roundScore;
       }
     } else {
       // === CUTTHROAT (INDIVIDUAL) SCORING ===
@@ -902,16 +929,32 @@ class Game {
         }
         if (!p.score) p.score = 0;
         p.score += roundScore;
+        if (p.isHuman) humanRoundScore = roundScore;
       }
     }
 
     this._checkRoundAchievements();
 
     this._updateScoreBar();
-    this._showRoundResults(() => {
-      if (this._isGameWon()) { this._endGame(); }
-      else { this.dealer = (this.dealer + 1) % 4; this.startRound(); }
-    });
+
+    // Round-end FX: floating score popup (+ SET! banner when a team got set),
+    // then the results overlay after a beat so the FX are visible under it.
+    this._showScorePopup(
+      (humanRoundScore >= 0 ? '+' : '') + humanRoundScore,
+      undefined, undefined,
+      humanRoundScore >= 0 ? '#4aaf6c' : '#e04a3a'
+    );
+    if (setTeams.length > 0) {
+      const name = setTeams.includes(0) ? this._t('yourTeam') : this._t('opponentsTeam');
+      setTimeout(() => this._showSetBanner(name), this._speedMs(400));
+    }
+
+    setTimeout(() => {
+      this._showRoundResults(() => {
+        if (this._isGameWon()) { this._endGame(); }
+        else { this.dealer = (this.dealer + 1) % 4; this.startRound(); }
+      });
+    }, this._speedMs(1600));
   }
 
   _checkRoundAchievements() {
@@ -957,6 +1000,8 @@ class Game {
       ? this.teams[0].score <= this.teams[1].score - 100
       : (human.score || 0) <= Math.max(...this.players.slice(1).map(p => p.score || 0)) - 100;
     if (trailing) this._wasDown100 = true;
+
+    this._updateXPBar(); // achievements grant XP
   }
 
   _isGameWon() {
@@ -1021,6 +1066,7 @@ class Game {
       if (!p.isHuman) trackHeadToHead(p.name, humanWon);
     }
     checkAchievements(this);
+    this._updateXPBar();
 
     const container = document.getElementById('final-scores');
     container.innerHTML = '';
@@ -1207,9 +1253,13 @@ class Game {
       if (skin.pip) { el.querySelectorAll('.card-idx,.card-pip').forEach(s => s.style.color = card.suit === 'hearts' || card.suit === 'diamonds' ? '#c0392b' : skin.pip); }
       el.style.animationDelay = `${i * 0.03}s`;
       if (canPlay) {
-        el.addEventListener('click', () => {
+        const play = () => {
           if (this._playLock) return;
           this._playCard(player, card);
+        };
+        el.addEventListener('click', play);
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); play(); }
         });
       }
       container.appendChild(el);
@@ -1469,9 +1519,11 @@ class Game {
     }
 
     document.getElementById('round-results-ok').addEventListener('click', () => {
+      if (overlay.classList.contains('hidden')) return;
       overlay.classList.add('hidden');
+      overlay.innerHTML = '';
       callback();
-    });
+    }, { once: true });
   }
 
   _showThinking(player) {
@@ -1576,7 +1628,7 @@ class Game {
     `;
     document.getElementById('reset-stats-btn')?.addEventListener('click', () => {
       if (confirm(this._t('resetConfirm'))) {
-        ['spades_stats','spades_game_stats','spades_achievements','spades_xp'].forEach(k => localStorage.removeItem(k));
+        ['spades_stats','spades_game_stats','spades_achievements','spades_xp','spades_play_time'].forEach(k => localStorage.removeItem(k));
         this._renderStats();
       }
     });

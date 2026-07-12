@@ -411,8 +411,8 @@ Object.assign(Game.prototype, {
       animation:firstBloodIn 2s ease-out forwards;
     `;
     el.textContent = isBlind
-      ? `🙈 ${escHTML(player.name)}'s BLIND NIL BUSTED!`
-      : `🎯 ${escHTML(player.name)}'s NIL BUSTED!`;
+      ? `🙈 ${player.name}'s BLIND NIL BUSTED!`
+      : `🎯 ${player.name}'s NIL BUSTED!`;
     document.body.appendChild(el);
 
     // Particles — red for your team's bust, green for opponent's
