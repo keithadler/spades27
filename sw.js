@@ -4,7 +4,7 @@
  * @copyright 2026 Keith Adler. MIT License.
  */
 
-const CACHE_NAME = 'spades27-v2';
+const CACHE_NAME = 'spades27-v3';
 const ASSETS = [
   './',
   './index.html',

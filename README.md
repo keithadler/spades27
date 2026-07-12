@@ -2,6 +2,7 @@
 
 A feature-rich, zero-dependency browser Spades card game. Pure HTML/CSS/JS — no build step, no server, no frameworks.
 
+![Version](https://img.shields.io/badge/Version-v3-blue)
 ![MIT License](https://img.shields.io/badge/License-MIT-green)
 ![Pure JS](https://img.shields.io/badge/Stack-HTML%2FCSS%2FJS-blue)
 ![No Dependencies](https://img.shields.io/badge/Dependencies-None-orange)
@@ -25,15 +26,15 @@ python3 -m http.server 8080
 
 **Visuals** — Cinematic deal animation with shuffle, 3-2-1 countdown, round announcements over the table felt, card fly-in animations, screen shake on trick wins and spades broken, particle effects, score popups, combo counters, nil bust banners, floating turn arrow, ambient dust motes, time-of-day lighting, haptic feedback, 6 card skins, and victory celebrations that scale with margin (double confetti for blowouts, subtle gold for close games).
 
-**i18n** — English, Spanish, Arabic (full RTL), Chinese. Auto-detects browser language. First-visit language picker. Language selector on menu and in preferences. Full UI translations (100+ keys per language), translated rules, culturally authentic names/cities/trash talk per language.
+**i18n** — English, Spanish, Arabic (full RTL), Chinese. Auto-detects browser language. First-visit language picker. Language selector on menu and in preferences. Full UI translations (100+ keys per language), translated rules and 9-step tutorial, culturally authentic names/cities/trash talk per language.
 
-**Accessibility** — ARIA roles and labels on all screens, overlays, menus, and cards. `aria-live` regions for trick results. Keyboard-navigable cards with `tabindex`. Screen reader support for game state.
+**Accessibility** — ARIA roles and labels on all screens, overlays, menus, and cards. `aria-live` regions for trick results. Cards are fully keyboard-playable (Tab + Enter/Space, or number keys 1-9). Colorblind mode with a 4-color deck (blue diamonds, green clubs). Pinch zoom enabled. Screen reader support for game state.
 
 **Progression** — XP leveling, 13 achievements (First Victory, Nil Master, Blind Faith, Boston, Perfect Bid, Clean Game, and more), lifetime stats, head-to-head records vs each AI opponent.
 
-**Quality of Life** — Save/resume games, dark/light theme, 6 table felt themes, 6 card skins (Classic, Midnight, Gold, Neon, Wood, Marble), game speed control (Fast/Normal/Slow), AI trash talk frequency slider (Off/Low/Normal/Max), interactive 9-step tutorial, in-game name editing, colorblind mode, prefers-reduced-motion support.
+**Quality of Life** — Save/resume games, dark/light theme, 6 table felt themes, 6 card skins (Classic, Midnight, Gold, Neon, Wood, Marble), game speed control (Fast/Normal/Slow), AI trash talk frequency slider (Off/Low/Normal/Max), interactive 9-step tutorial, in-game name editing, colorblind mode (4-color deck), suit-grouped bid panel, prefers-reduced-motion support.
 
-**Mobile** — Responsive across phones, tablets, and desktop. PWA installable with offline support via service worker. Touch support, safe area support for notched devices.
+**Mobile** — Responsive across phones, tablets, and desktop. PWA installable with offline support via service worker (stale-while-revalidate, so updates reach returning players automatically). Touch support, safe area support for notched devices.
 
 ## Game Modes
 
@@ -108,10 +109,10 @@ Bidding uses conservative trick counting (floor, not round) with bag-aware adjus
 - **Rendering** — DOM-based card rendering with CSS animations
 - **Audio** — Web Audio API oscillator synthesis (no audio files)
 - **Persistence** — localStorage for stats, achievements, settings, save games
-- **Offline** — Service worker caches all assets for offline play
-- **Accessibility** — ARIA roles, labels, live regions, keyboard navigation
-- **Avatars** — DiceBear Open Peeps (CC BY 4.0)
-- **Font** — Inter (SIL Open Font License 1.1)
+- **Offline** — Service worker caches all assets for offline play, refreshing them in the background
+- **Accessibility** — ARIA roles, labels, live regions, keyboard navigation, 4-color colorblind deck
+- **Avatars** — DiceBear Open Peeps (CC BY 4.0), with a local SVG fallback when offline
+- **Typography** — System font stack (no webfont download)
 
 ## Running Tests
 
@@ -121,6 +122,23 @@ node test.js
 # nil/blindNil properties, AI bidding, AI play, trick resolution
 ```
 
+## Changelog
+
+### v3 — July 2026
+- Fixed a game-corrupting bug where pending AI timers from an abandoned game leaked into the next one (duplicate plays, desynced tricks, and a hang at trick 13)
+- AI overhaul: partners reliably cover Nil bids at every difficulty, nil bidders duck their own tricks, cutthroat nil-busting activates, no more phantom partnership logic in FFA
+- 25+ bug fixes across scoring edge cases, stats tracking (tricks, nils), all 13 achievements now earnable, save/resume integrity, dialog double-fires, and keyboard input
+- Modernized UI: real card faces with corner indices, felt table well, status chips, and a redesigned suit-grouped bid screen for desktop and mobile
+- Colorblind mode implemented as a 4-color deck with a settings toggle
+- Complete Spanish, Arabic, and Chinese localization including the tutorial; corrected Arabic card terminology
+- Service worker switched to stale-while-revalidate so deployed updates reach returning players
+
+### v2 — July 2026
+- Initial fix wave and Pages deployment
+
+### v1
+- Original release
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
@@ -128,7 +146,6 @@ MIT — see [LICENSE](LICENSE).
 ## Attribution
 
 - Avatars by [DiceBear](https://dicebear.com) — CC BY 4.0
-- Inter typeface by Rasmus Andersson — SIL OFL 1.1
 
 ---
 Made by Keith Adler
