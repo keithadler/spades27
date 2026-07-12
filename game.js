@@ -34,6 +34,7 @@ class Game {
     if (this._colorblindMode) document.body.classList.add('colorblind');
     this._playLock = false;
     this._trickNum = 0;
+    this._gameEpoch = 0;
 
     this._playTimeInterval = setInterval(() => {
       if (!this.gameOver && this.players.length > 0 && document.visibilityState === 'visible') trackPlayTime(60);
@@ -45,6 +46,15 @@ class Game {
   _speedMs(ms) {
     const mult = { fast: 0.4, normal: 1, slow: 1.6 };
     return Math.round(ms * (mult[this._gameSpeed] || 1));
+  }
+
+  // Game-flow timer that dies if a new game starts (or the game ends)
+  // before it fires. Without this, a pending "AI is thinking" timeout
+  // from an abandoned game plays cards into the next one, spawning a
+  // second turn loop that corrupts tricks and deadlocks the round.
+  _gameTimeout(fn, ms) {
+    const epoch = this._gameEpoch;
+    return setTimeout(() => { if (epoch === this._gameEpoch) fn(); }, ms);
   }
 
   _haptic(pattern) { try { if (navigator.vibrate) navigator.vibrate(pattern || 15); } catch(e) {} }
@@ -96,7 +106,13 @@ class Game {
       document.getElementById('ragequit-overlay').classList.add('hidden');
       recordLoss(getPlayerName());
       this.gameOver = true;
+      this._gameEpoch++; // kill in-flight AI turn timers
       this._clearSavedGame();
+      this._hideThinking();
+      for (const id of ['message-overlay', 'bid-overlay']) {
+        const el = document.getElementById(id);
+        if (el) { el.classList.add('hidden'); el.innerHTML = ''; }
+      }
       this.showScreen('menu-screen');
     });
     document.getElementById('ragequit-no').addEventListener('click', () => {
@@ -242,6 +258,7 @@ class Game {
   }
 
   startGame(rematch) {
+    this._gameEpoch++; // invalidate any pending timers from a previous game
     const scoreOpt = this._getOption('target-score') || '500';
     if (scoreOpt === 'custom') {
       const ci = document.getElementById('custom-score-input');
@@ -387,6 +404,7 @@ class Game {
 
   _resumeGame() {
     if (!this._loadGameState()) return;
+    this._gameEpoch++;
     if (!this.sfx) this.sfx = new SFX();
     if (this.music) { this.music.init(); this.music.start(); }
     this.showScreen('game-screen');
@@ -490,7 +508,7 @@ class Game {
       }
     } else {
       this._showThinking(player);
-      setTimeout(() => {
+      this._gameTimeout(() => {
         this._hideThinking();
         const partnerIdx = (playerIdx + 2) % 4;
         const partnerBid = this.teamMode ? this.players[partnerIdx].bid : -1;
@@ -687,7 +705,7 @@ class Game {
 
     if (!player.isHuman) {
       this._showThinking(player);
-      setTimeout(() => {
+      this._gameTimeout(() => {
         this._hideThinking();
         this._aiPlay(player);
       }, this._speedMs(800 + Math.random() * 1000));
@@ -698,6 +716,7 @@ class Game {
   }
 
   _aiPlay(player) {
+    if (this.roundOver || this.gameOver) return;
     const leadSuit = this.trick.length > 0 ? this.trick[0].card.suit : null;
     const trickCards = this.trick.map(t => t.card);
     const partnerIdx = (player.index + 2) % 4;
@@ -776,11 +795,11 @@ class Game {
 
     if (this.trick.length === 4) {
       // Trick complete — determine winner
-      setTimeout(() => {
+      this._gameTimeout(() => {
         this._resolveTrick();
       }, this._speedMs(1200));
     } else {
-      setTimeout(() => {
+      this._gameTimeout(() => {
         this._playLock = false;
         this.currentPlayer = (this.currentPlayer + 1) % 4;
         this._doTurn();
@@ -952,7 +971,7 @@ class Game {
       setTimeout(() => this._showSetBanner(name), this._speedMs(400));
     }
 
-    setTimeout(() => {
+    this._gameTimeout(() => {
       this._showRoundResults(() => {
         if (this._isGameWon()) { this._endGame(); }
         else { this.dealer = (this.dealer + 1) % 4; this.startRound(); }
@@ -1019,6 +1038,7 @@ class Game {
 
   _endGame() {
     this.gameOver = true;
+    this._gameEpoch++;
     this._clearSavedGame();
     let humanWon;
 
@@ -1405,7 +1425,9 @@ class Game {
     el.innerHTML = `<img src="${winner.avatar}" style="width:40px;height:40px;border-radius:50%;" alt=""> ${this._t('winsTrick').replace('{name}', escHTML(winner.name))}`;
     document.body.appendChild(el);
     spawnParticles(window.innerWidth / 2, window.innerHeight / 2, 10, 'particle-gold');
-    setTimeout(() => { el.remove(); callback(); }, this._speedMs(1200));
+    const ms = this._speedMs(1200);
+    setTimeout(() => el.remove(), ms);
+    this._gameTimeout(callback, ms);
   }
 
   _showRoundResults(callback) {

@@ -101,7 +101,7 @@ Object.assign(Game.prototype, {
     }
 
     const totalTime = dealStart + dealt * perCard + this._speedMs(500);
-    setTimeout(callback, totalTime);
+    this._gameTimeout(callback, totalTime);
   },
 
   // =========================================================================
@@ -141,10 +141,9 @@ Object.assign(Game.prototype, {
       setTimeout(() => this.sfx._play(880, 0.3, 'sine', 0.12), 400);
     }
 
-    setTimeout(() => {
-      el.remove();
-      callback();
-    }, this._speedMs(2800));
+    const raMs = this._speedMs(2800);
+    setTimeout(() => el.remove(), raMs);
+    this._gameTimeout(callback, raMs);
   },
 
   // =========================================================================
@@ -177,7 +176,7 @@ Object.assign(Game.prototype, {
       if (this.sfx) this.sfx._play(step.freq, 0.15, 'sine', 0.12);
       this._haptic(30);
       i++;
-      setTimeout(next, i === steps.length ? this._speedMs(500) : this._speedMs(700));
+      this._gameTimeout(next, i === steps.length ? this._speedMs(500) : this._speedMs(700));
     };
     next();
   },
@@ -357,7 +356,7 @@ Object.assign(Game.prototype, {
       }
     }
 
-    setTimeout(callback, this._speedMs(2000));
+    this._gameTimeout(callback, this._speedMs(2000));
   },
 
   // =========================================================================
