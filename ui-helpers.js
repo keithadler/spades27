@@ -291,6 +291,8 @@ const TUTORIAL_STEPS = [
 
 function showTutorial(onClose) {
   let step = 0;
+  const lang = localStorage.getItem('spades_lang') || detectBrowserLang();
+  const steps = getLocale(lang).tutSteps || TUTORIAL_STEPS;
   const overlay = document.getElementById('tutorial-overlay');
   const content = document.getElementById('tutorial-step-content');
   const dots = document.getElementById('tut-dots');
@@ -299,22 +301,22 @@ function showTutorial(onClose) {
   if (!overlay || !content) return;
 
   function render() {
-    const s = TUTORIAL_STEPS[step];
+    const s = steps[step];
     content.innerHTML = `
       <div style="font-size:1.4rem;font-weight:900;text-align:center;margin-bottom:6px;background:linear-gradient(180deg,#fff 20%,#4a90d9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">${s.title}</div>
-      <div style="font-size:0.75rem;opacity:0.4;text-align:center;margin-bottom:16px;">${_tUI('step')} ${step + 1} ${_tUI('stepOf')} ${TUTORIAL_STEPS.length}</div>
+      <div style="font-size:0.75rem;opacity:0.4;text-align:center;margin-bottom:16px;">${_tUI('step')} ${step + 1} ${_tUI('stepOf')} ${steps.length}</div>
       <div style="font-size:0.95rem;line-height:1.7;opacity:0.85;">${s.body}</div>
     `;
-    dots.innerHTML = TUTORIAL_STEPS.map((_, i) =>
+    dots.innerHTML = steps.map((_, i) =>
       `<div style="width:8px;height:8px;border-radius:50%;background:${i === step ? '#4a90d9' : 'rgba(255,255,255,0.15)'};transition:all 0.2s;${i === step ? 'transform:scale(1.3);' : ''}"></div>`
     ).join('');
     prevBtn.disabled = step === 0;
-    nextBtn.textContent = step === TUTORIAL_STEPS.length - 1 ? _tUI('startPlaying') : _tUI('next');
+    nextBtn.textContent = step === steps.length - 1 ? _tUI('startPlaying') : _tUI('next');
   }
 
   prevBtn.onclick = () => { if (step > 0) { step--; render(); } };
   nextBtn.onclick = () => {
-    if (step < TUTORIAL_STEPS.length - 1) { step++; render(); }
+    if (step < steps.length - 1) { step++; render(); }
     else { overlay.classList.add('hidden'); localStorage.setItem('spades_tutorial_done', '1'); if (onClose) onClose(); }
   };
   document.getElementById('tut-skip').onclick = () => {

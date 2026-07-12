@@ -1877,6 +1877,8 @@ class Game {
     setTxt('#rematch-btn', u.rematch);
     setTxt('#play-again', u.newGame);
     setTxt('#ragequit-loss-note', u.rageQuitLossNote);
+    setTxt('#tut-prev', u.back);
+    setTxt('#rules-close-btn', u.back);
 
     // Menu labels
     const labels = document.querySelectorAll('.option-group label');
