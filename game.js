@@ -57,6 +57,10 @@ class Game {
   showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
+    if (id === 'menu-screen') {
+      const resumeBtn = document.getElementById('resume-game');
+      if (resumeBtn) resumeBtn.style.display = localStorage.getItem('spades_saved_game') ? '' : 'none';
+    }
   }
 
   _initUI() {
@@ -92,6 +96,7 @@ class Game {
       document.getElementById('ragequit-overlay').classList.add('hidden');
       recordLoss(getPlayerName());
       this.gameOver = true;
+      this._clearSavedGame();
       this.showScreen('menu-screen');
     });
     document.getElementById('ragequit-no').addEventListener('click', () => {
@@ -155,6 +160,10 @@ class Game {
       const key = e.key.toLowerCase();
       const gameScreen = document.getElementById('game-screen');
       if (!gameScreen.classList.contains('active')) return;
+
+      // Ignore shortcuts while typing in a text field (e.g. in-game name edit)
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
 
       // Escape: close overlays/dropdown
       if (key === 'escape') {
@@ -255,6 +264,7 @@ class Game {
       }
       for (const p of this.players) p.resetRound();
       this.gameOver = false; this.gameLog = []; this._roundNum = 0;
+      this._wasDown100 = false; this._gameBagsAccrued = 0;
       this.dealer = 0;
       this.showScreen('game-screen');
       if (this.music) { this.music.init(); this.music.start(); }
@@ -309,6 +319,7 @@ class Game {
     }
 
     this.gameOver = false; this.gameLog = []; this._roundNum = 0;
+    this._wasDown100 = false; this._gameBagsAccrued = 0;
     this.dealer = Math.floor(Math.random() * 4);
 
     this.showScreen('game-screen');
@@ -386,6 +397,8 @@ class Game {
     this.trick = [];
     this._trickNum = 0;
     this._playLock = false;
+    this._lastTrickWinner = -1;
+    this._trickCombo = 0;
 
     for (const p of this.players) p.resetRound();
 
@@ -453,6 +466,7 @@ class Game {
           if (accepted) {
             player.bid = 0;
             player.blindNil = true;
+            trackStat('nilsAttempted');
             if (this.sfx) this.sfx.nilBid();
             this._renderHumanHand(player, []);
             this._currentBidIdx++;
@@ -471,7 +485,7 @@ class Game {
       setTimeout(() => {
         this._hideThinking();
         const partnerIdx = (playerIdx + 2) % 4;
-        const partnerBid = this.players[partnerIdx].bid;
+        const partnerBid = this.teamMode ? this.players[partnerIdx].bid : -1;
         const teamBags = this.teamMode && this.teams ? this.teams[player.team].bags : 0;
         const bid = player.ai.chooseBid(player.hand, partnerBid, { teamBags });
         player.bid = bid;
@@ -560,6 +574,7 @@ class Game {
       btn.addEventListener('click', () => {
         player.bid = parseInt(btn.dataset.bid);
         player.blindNil = false;
+        if (player.bid === 0) trackStat('nilsAttempted');
         overlay.classList.add('hidden');
         if (this.sfx) { player.bid === 0 ? this.sfx.nilBid() : this.sfx.bid(); }
         this._currentBidIdx++;
@@ -662,8 +677,9 @@ class Game {
     const trickCards = this.trick.map(t => t.card);
     const partnerIdx = (player.index + 2) % 4;
     // Build opponent nil info: which opponents bid nil and haven't busted yet?
+    // In cutthroat every team is -1, so compare players, not teams.
     const oppNils = this.players.filter(p =>
-      p.team !== player.team && p.bid === 0 && p.tricks === 0
+      p !== player && (!this.teamMode || p.team !== player.team) && p.bid === 0 && p.tricks === 0
     ).map(p => p.index);
     // Track which player index played which card in the trick
     const trickPlayers = this.trick.map(t => t.playerIndex);
@@ -761,6 +777,7 @@ class Game {
 
     const winner = this.players[this.trick[winnerIdx].playerIndex];
     winner.tricks++;
+    if (winner.isHuman) trackStat('totalTricks', 1);
 
     // === NIL BUST DETECTION ===
     // If the winner bid Nil or Blind Nil, they just busted!
@@ -770,7 +787,7 @@ class Game {
     }
 
     // Track consecutive wins for combo counter
-    if (!this._lastTrickWinner) this._lastTrickWinner = -1;
+    if (this._lastTrickWinner === undefined) this._lastTrickWinner = -1;
     if (winner.index === this._lastTrickWinner || (this.teamMode && winner.team === this.players[this._lastTrickWinner]?.team)) {
       this._trickCombo = (this._trickCombo || 0) + 1;
       if (this._trickCombo >= 2 && (winner.isHuman || (this.teamMode && winner.team === 0))) {
@@ -854,7 +871,7 @@ class Game {
             roundScore += bags;
             this.teams[t].bags += bags;
             trackStat('totalBags', bags);
-            if (this.teams[t].bags >= 10) { this.teams[t].bags -= 10; roundScore -= 100; if (this.sfx && t === 0) this.sfx.bagPenalty(); }
+            while (this.teams[t].bags >= 10) { this.teams[t].bags -= 10; roundScore -= 100; if (this.sfx && t === 0) this.sfx.bagPenalty(); }
           } else {
             roundScore = -nonNilBid * 10;
           }
@@ -878,7 +895,7 @@ class Game {
             if (!p.bags) p.bags = 0;
             p.bags += bags;
             trackStat('totalBags', bags);
-            if (p.bags >= 10) { p.bags -= 10; roundScore -= 100; if (this.sfx && p.isHuman) this.sfx.bagPenalty(); }
+            while (p.bags >= 10) { p.bags -= 10; roundScore -= 100; if (this.sfx && p.isHuman) this.sfx.bagPenalty(); }
           } else {
             roundScore = -p.bid * 10;
           }
@@ -888,11 +905,58 @@ class Game {
       }
     }
 
+    this._checkRoundAchievements();
+
     this._updateScoreBar();
     this._showRoundResults(() => {
       if (this._isGameWon()) { this._endGame(); }
       else { this.dealer = (this.dealer + 1) % 4; this.startRound(); }
     });
+  }
+
+  _checkRoundAchievements() {
+    const human = this.players[0];
+
+    // Nil outcomes
+    if (human.bid === 0 && human.tricks === 0) {
+      trackStat('nilsSucceeded');
+      awardAchievement(human.blindNil ? 'blind_nil' : 'nil_success');
+    }
+
+    // Perfect bid: exactly your bid, zero personal bags
+    if (human.bid > 0 && human.tricks === human.bid) awardAchievement('perfect_bid');
+
+    // Boston: all 13 tricks in a round
+    const humanSideTricks = this.teamMode
+      ? this.players.filter(p => p.team === 0).reduce((s, p) => s + p.tricks, 0)
+      : human.tricks;
+    if (humanSideTricks === 13) awardAchievement('boston');
+
+    // Set the opposing team
+    if (this.teamMode) {
+      const opp = this.players.filter(p => p.team === 1 && p.bid > 0);
+      const oppBid = opp.reduce((s, p) => s + p.bid, 0);
+      const oppTricks = opp.reduce((s, p) => s + p.tricks, 0);
+      if (oppBid > 0 && oppTricks < oppBid) awardAchievement('set_opponent');
+    }
+
+    // Track bags accrued by the human side this game (for Clean Game)
+    let sideBags = 0;
+    if (this.teamMode) {
+      const mates = this.players.filter(p => p.team === 0);
+      const nonNilBid = mates.filter(p => p.bid > 0).reduce((s, p) => s + p.bid, 0);
+      const nonNilTricks = mates.filter(p => p.bid > 0).reduce((s, p) => s + p.tricks, 0);
+      if (nonNilBid > 0 && nonNilTricks > nonNilBid) sideBags = nonNilTricks - nonNilBid;
+    } else if (human.bid > 0 && human.tricks > human.bid) {
+      sideBags = human.tricks - human.bid;
+    }
+    this._gameBagsAccrued = (this._gameBagsAccrued || 0) + sideBags;
+
+    // Track trailing by 100+ at any round end (for Comeback Kid)
+    const trailing = this.teamMode
+      ? this.teams[0].score <= this.teams[1].score - 100
+      : (human.score || 0) <= Math.max(...this.players.slice(1).map(p => p.score || 0)) - 100;
+    if (trailing) this._wasDown100 = true;
   }
 
   _isGameWon() {
@@ -950,6 +1014,8 @@ class Game {
       }
     }
     else { trackStat('loseStreak'); addXP(10); }
+    if (humanWon && this._wasDown100) awardAchievement('comeback');
+    if (humanWon && !this._gameBagsAccrued) awardAchievement('no_bags');
     // Track head-to-head vs each AI
     for (const p of this.players) {
       if (!p.isHuman) trackHeadToHead(p.name, humanWon);
@@ -1009,13 +1075,13 @@ class Game {
     if (this.teamMode && this.teams) {
       const t0 = this.teams[0], t1 = this.teams[1];
       bar.innerHTML = `${roundLabel}
-        <div class="sb-team" style="border-color:rgba(100,200,130,0.3);">
+        <div class="sb-team${t0.score > t1.score ? ' leading' : ''}" style="border-color:rgba(100,200,130,0.3);">
           <span class="sb-team-name">🟢 ${this._t('yourTeam')}</span>
           <span class="sb-team-score">${t0.score}</span>
           <span style="font-size:0.6rem;opacity:0.4;">${t0.bags}🎒</span>
         </div>
         <span class="sb-vs">VS</span>
-        <div class="sb-team" style="border-color:rgba(220,100,80,0.3);">
+        <div class="sb-team${t1.score > t0.score ? ' leading' : ''}" style="border-color:rgba(220,100,80,0.3);">
           <span class="sb-team-name">🔴 ${this._t('opponentsTeam')}</span>
           <span class="sb-team-score">${t1.score}</span>
           <span style="font-size:0.6rem;opacity:0.4;">${t1.bags}🎒</span>
@@ -1059,7 +1125,7 @@ class Game {
           <div class="opp-info">
             <span class="opp-name${isTurn ? ' active-turn' : ''}">${isPartner ? '🤝 ' : ''}${escHTML(p.name)}</span>
             <span class="opp-record">${rec.wins}W ${rec.losses}L</span>
-            ${p.hasBid ? `<span style="font-size:0.7rem;color:${p.nilBusted ? '#e04a3a' : '#4a90d9'};font-weight:700;">${p.blindNil ? '🙈 BN' : p.bid === 0 ? '🎯 NIL' : 'Bid: ' + p.bid}${p.nilBusted ? ' BUST!' : ''} | Won: ${p.tricks}</span>` : ''}
+            ${p.hasBid ? `<span class="bid-status${p.nilBusted ? ' busted' : ''}">${p.blindNil ? '🙈 BN' : p.bid === 0 ? '🎯 NIL' : 'Bid ' + p.bid}${p.nilBusted ? ' 💥' : ''} · Won ${p.tricks}</span>` : ''}
           </div>
         </div>
         <div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
@@ -1086,7 +1152,7 @@ class Game {
           <div class="human-info-text">
             <span class="human-name" id="human-name-label" style="cursor:pointer;" title="Double-click to edit">${escHTML(human.name)}</span>
             <span class="human-record">${rec.wins}W ${rec.losses}L</span>
-            ${human.hasBid ? `<span style="font-size:0.7rem;color:${human.nilBusted ? '#e04a3a' : '#4a90d9'};font-weight:700;">${human.blindNil ? '🙈 Blind Nil' : human.bid === 0 ? '🎯 Nil' : 'Bid: ' + human.bid}${human.nilBusted ? ' BUST!' : ''} | Won: ${human.tricks}</span>` : ''}
+            ${human.hasBid ? `<span class="bid-status${human.nilBusted ? ' busted' : ''}">${human.blindNil ? '🙈 Blind Nil' : human.bid === 0 ? '🎯 Nil' : 'Bid ' + human.bid}${human.nilBusted ? ' 💥' : ''} · Won ${human.tricks}</span>` : ''}
           </div>
         `;
 
@@ -1131,14 +1197,14 @@ class Game {
       } else {
         el.className = 'hand-card';
       }
-      el.innerHTML = `<span class="card-rank" style="color:${card.color}">${card.rank}</span><span class="card-suit" style="color:${card.color}">${card.symbol}</span>`;
+      el.innerHTML = `<span class="card-idx" style="color:${card.color}">${card.rank}<em>${card.symbol}</em></span><span class="card-pip" style="color:${card.color}">${card.symbol}</span><span class="card-idx idx-br" style="color:${card.color}">${card.rank}<em>${card.symbol}</em></span>`;
       el.setAttribute('role', 'button');
       el.setAttribute('aria-label', `${card.rank} of ${card.suit}${canPlay ? ' - playable' : ''}`);
       el.setAttribute('tabindex', canPlay ? '0' : '-1');
       // Apply card skin
       const skin = getCardSkinColors();
       el.style.background = `linear-gradient(160deg, ${skin.face} 0%, ${skin.faceDark} 100%)`;
-      if (skin.pip) { el.querySelectorAll('.card-rank,.card-suit').forEach(s => s.style.color = card.suit === 'hearts' || card.suit === 'diamonds' ? '#c0392b' : skin.pip); }
+      if (skin.pip) { el.querySelectorAll('.card-idx,.card-pip').forEach(s => s.style.color = card.suit === 'hearts' || card.suit === 'diamonds' ? '#c0392b' : skin.pip); }
       el.style.animationDelay = `${i * 0.03}s`;
       if (canPlay) {
         el.addEventListener('click', () => {
@@ -1167,7 +1233,7 @@ class Game {
         case 2: el.style.top = '10px'; el.style.left = '50%'; el.style.transform = 'translateX(-50%)'; break;
         case 3: el.style.top = '50%'; el.style.right = '10px'; el.style.transform = 'translateY(-50%)'; break;
       }
-      el.innerHTML = `<span style="color:${pipColor};font-weight:800;font-size:1.5rem;">${t.card.rank}</span><span style="color:${pipColor};font-size:1.2rem;">${t.card.symbol}</span>`;
+      el.innerHTML = `<span class="card-idx" style="color:${pipColor}">${t.card.rank}<em>${t.card.symbol}</em></span><span class="card-pip" style="color:${pipColor}">${t.card.symbol}</span><span class="card-idx idx-br" style="color:${pipColor}">${t.card.rank}<em>${t.card.symbol}</em></span>`;
       area.appendChild(el);
     }
   }
@@ -1381,7 +1447,7 @@ class Game {
       const sorted = [...this.players].sort((a, b) => (b.score || 0) - (a.score || 0));
       for (const p of sorted) {
         const made = p.bid === 0 ? p.tricks === 0 : p.tricks >= p.bid;
-        const bidLabel = p.blindNil ? '�� BN' : p.bid === 0 ? '🎯 Nil' : p.bid;
+        const bidLabel = p.blindNil ? '🙈 BN' : p.bid === 0 ? '🎯 Nil' : p.bid;
         const resultColor = made ? '#4aaf6c' : '#e04a3a';
         html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
           <img src="${p.avatar}" style="width:32px;height:32px;border-radius:50%;" alt="">

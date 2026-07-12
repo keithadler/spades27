@@ -9,6 +9,11 @@ function avatarURL(seed) {
 }
 // Fallback SVG if avatar fails to load
 const FALLBACK_AVATAR = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="32" fill="#4a6a9a"/><text x="32" y="40" text-anchor="middle" fill="#fff" font-size="28">♠</text></svg>');
+// Swap any avatar that fails to load (e.g. offline) for the fallback
+window.addEventListener('error', (e) => {
+  const t = e.target;
+  if (t && t.tagName === 'IMG' && t.src !== FALLBACK_AVATAR) t.src = FALLBACK_AVATAR;
+}, true);
 
 function _buildPhrases(lang) {
   const loc = getLocale(lang || 'en');

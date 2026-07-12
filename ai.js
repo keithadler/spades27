@@ -310,21 +310,42 @@ class AI {
     if (playable.length === 0) return null;
     if (playable.length === 1) return playable[0];
 
+    // ===== FACTOR 0: I BID NIL — never try to win (all difficulties) =====
+    // A nil bidder trying to win tricks makes no sense at any skill level.
+    if (ctx && ctx.myBid === 0) {
+      if (!leadSuit) {
+        // Leading: lead the absolute lowest card
+        return playable.reduce((lo, c) => (c.value < lo.value ? c : lo));
+      }
+      const losers = playable.filter(c => !this._wouldWin(c, trick, leadSuit));
+      if (losers.length > 0) {
+        // Slough the highest card that still loses — sheds future liabilities
+        return losers.reduce((hi, c) => (c.value > hi.value ? c : hi));
+      }
+      // Every card wins (forced) — take it as cheaply as possible
+      return playable.reduce((lo, c) => (c.value < lo.value ? c : lo));
+    }
+
+    const partnerNil = ctx && ctx.teamMode && ctx.partnerBid === 0;
+
     // ----- EASY: Not random — plays "badly but legally" -----
     // Follows suit, prefers high cards (wastes winners), doesn't
     // think about bags or partner. Feels like a beginner.
+    // Exception: covering a nil partner is table stakes even for beginners,
+    // so the random "whoops" picks are disabled while partner's nil is live.
     if (this.difficulty === 'easy') {
+      const coverNil = partnerNil && ctx.partnerTricks === 0;
       if (!leadSuit) {
         // Leading: pick highest non-spade, or highest spade
         const nonSpades = playable.filter(c => !c.isSpade);
         const pool = nonSpades.length > 0 ? nonSpades : playable;
         pool.sort((a, b) => b.value - a.value);
         // 70% play highest, 30% random
-        return Math.random() > 0.3 ? pool[0] : pool[Math.floor(Math.random() * pool.length)];
+        return (coverNil || Math.random() > 0.3) ? pool[0] : pool[Math.floor(Math.random() * pool.length)];
       }
       // Following: play highest of suit (wastes winners), or random off-suit
       playable.sort((a, b) => b.value - a.value);
-      return Math.random() > 0.2 ? playable[0] : playable[Math.floor(Math.random() * playable.length)];
+      return (coverNil || Math.random() > 0.2) ? playable[0] : playable[Math.floor(Math.random() * playable.length)];
     }
 
     // ----- MEDIUM / HARD: Full heuristic scoring -----
@@ -519,9 +540,12 @@ class AI {
 
     scored.sort((a, b) => b.score - a.score);
 
-    // MEDIUM: pick from top 3 with weighted randomness
+    // MEDIUM: pick from top 3 with weighted randomness — but only among
+    // near-equivalent plays. Without the margin filter, medium would gamble
+    // on clearly terrible cards (e.g. ducking under a nil partner when the
+    // best play out-scores the duck by 30+ points).
     if (this.difficulty === 'medium') {
-      const top = scored.slice(0, Math.min(3, scored.length));
+      const top = scored.filter(s => scored[0].score - s.score <= 5).slice(0, 3);
       const weights = [5, 3, 1];
       const totalW = weights.slice(0, top.length).reduce((a, b) => a + b, 0);
       let r = Math.random() * totalW;

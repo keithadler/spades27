@@ -82,6 +82,9 @@ function unlockAchievement(id) {
   unlocked.push(id); localStorage.setItem('spades_achievements', JSON.stringify(unlocked));
   addXP(25); return true;
 }
+function awardAchievement(id) {
+  if (unlockAchievement(id)) showAchievementPopup(id);
+}
 function checkAchievements(game) {
   const s = getGameStats();
   const checks = [
