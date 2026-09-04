@@ -44,10 +44,12 @@
  *   - Miss your bid → -bid×10 points (disaster!)
  *   - Win extra tricks → +1 each, but they're "bags" (10 bags = -100)
  *
- * Because missing your bid is 10x worse than getting a bag, the AI
- * deliberately UNDERCOUNTS its expected tricks. It uses Math.floor()
- * instead of Math.round(), so 3.8 expected tricks becomes a bid of 3,
- * not 4. One extra bag (+1 point) is far better than getting set (-30).
+ * The AI estimates its expected tricks and bids the nearest whole number
+ * (Math.round). It used to floor the estimate "to be safe", but shaving a
+ * trick off every hand meant the table bid ~7 of 13 tricks: nobody ever
+ * got set, bags piled up, and the human's partner bid 1 and then coasted.
+ * Underbidding is not free in a partnership — it just moves the work
+ * onto your partner.
  *
  * The AI counts expected tricks from three sources:
  *
@@ -55,25 +57,26 @@
  *      Spades beat everything, so high spades are near-guaranteed wins.
  *      The AI sorts its spades highest-first and counts top-down:
  *
- *        A♠ at position 0 → 1.0 tricks (always wins, it's the best card)
- *        K♠ at position 1 → 1.0 tricks (wins because A♠ draws out
- *            opponents' aces first, so K♠ is safe)
- *        Q♠ at position 2 → 1.0 tricks (A♠ and K♠ clear the way)
- *        J♠ or Q♠ without full support → 0.4 tricks (might win, risky)
+ *        A♠ → 1.0 tricks (always wins, it's the best card)
+ *        K♠ → 1.0 with A♠ (your ace draws theirs out first), 0.8 alone
+ *        Q♠ → 0.95 with A♠+K♠, 0.7 with one of them, 0.45 alone
+ *        J♠ → 0.6 with 4+ spades, 0.3 otherwise
  *
- *      Key insight: K♠ is worth 1.0 if you ALSO have A♠ (because your
- *      ace draws out their ace first). But K♠ alone is only worth ~0.4
- *      because someone else might have A♠.
+ *      LOW SPADES win tricks too, in two ways: LENGTH (with 4+ spades the
+ *      opponents run out of trumps and your small ones win late) and
+ *      RUFFING (see 3). The same low spade can't do both, so the AI
+ *      credits the larger of the two and only 30% of the smaller.
  *
  *   2. SIDE SUIT WINNERS (non-spade high cards)
  *      Aces and kings of hearts/diamonds/clubs can win tricks too, but
  *      they're less reliable because opponents might be void and trump.
  *
- *        A♥ = 0.85 tricks (usually wins, but ~15% chance someone ruffs)
- *        K♥ with A♥ and 3+ hearts = 0.6 tricks (ace clears the way,
- *            length protects the king from being played too early)
- *        K♥ without ace, 3+ hearts = 0.35 tricks (risky — ace is out)
- *        Q♥ with A♥, K♥, and 4+ hearts = 0.3 tricks (needs both gone)
+ *        A♥ = 0.9 tricks (usually wins; 0.6 in a 6+ card suit where
+ *            someone is void early and ruffs it)
+ *        K♥ with A♥ = 0.8 tricks (ace clears the way)
+ *        K♥ without ace, 2+ hearts = 0.55 tricks (risky — ace is out)
+ *        K♥ singleton = 0.3 tricks
+ *        Q♥ with 3+ hearts = 0.4 with A or K above it, 0.2 alone
  *
  *      Why does SUIT LENGTH matter? If you have K♥ but only 1 heart,
  *      you must play it on the first heart trick — and the A♥ is
@@ -83,24 +86,22 @@
  *   3. RUFFING POTENTIAL (void suits)
  *      If you have ZERO cards in a suit, you can play a spade when
  *      that suit is led — this is called "ruffing" or "trumping."
- *      Each void is worth ~0.5 extra tricks IF you have spare spades
- *      (spades beyond what you already counted as spade tricks).
- *
- *      Singletons (1 card in a suit) get 0.3 credit because after
- *      one trick in that suit, you'll be void and can ruff.
+ *      A void is worth 1.0, a singleton 0.5 and a doubleton 0.2 — but
+ *      only up to 0.9 per LOW spade you actually hold to ruff with.
  *
  * TEAM AWARENESS IN BIDDING:
- *   If your partner already bid, the AI caps the team total at 10.
- *   Bidding 11+ as a team means you need almost every trick — too risky.
+ *   If your partner already bid, the AI caps the team total at 11 (Hard)
+ *   or 10 (Medium). Above that you need almost every trick — too risky.
  *
  * BAG-AWARE BIDDING:
  *   If the team has 7+ bags (close to the -100 penalty at 10), the AI
  *   bids 1 less as a safety buffer.
  *
  * NIL BIDS (Hard only):
- *   If the hand is truly terrible (≤0.5 expected tricks, at most 1
- *   spade, no card above 9), bidding Nil is better than bidding 1.
- *   Nil success = +100, failure = -100. Worth the gamble with garbage.
+ *   If the hand is genuinely weak (≤1.2 expected tricks, no aces, at most
+ *   one king, no more than 3 spades and none above 9) and partner didn't
+ *   already bid Nil, bidding Nil (+100) beats bidding 1 about 2/3 of the
+ *   time the hand qualifies.
  *
  *
  * =========================================================================
@@ -151,6 +152,15 @@
  *   b) I NEED TRICKS → Dump LOW cards (+0.5 per low rank). Save high
  *      cards and spades (+2) for tricks where they matter.
  *
+ *   THE BID IS SHARED (team mode)
+ *   ─────────────────────────────
+ *   "Do I need tricks?" is answered for the TEAM, not the individual.
+ *   A partner who bid 1, won it on trick 2 and then ducked for the rest
+ *   of the hand — while you still needed 4 — was the single biggest
+ *   reason 2v2 felt like playing alone. Now an AI keeps fighting for
+ *   tricks until the combined team bid is made, and only then ducks.
+ *   (Tricks won by a nil bidder don't count toward the partner's bid.)
+ *
  *   FACTOR 4: PARTNER AWARENESS (Hard only, team mode)
  *   ──────────────────────────────────────────────────
  *   Uses actual trick position (not assumed index) to find partner's card.
@@ -158,6 +168,18 @@
  *   - Partner winning + partner bid nil → MUST overtake (+20). Save nil.
  *   - Partner winning + I don't need tricks → Play lowest (1.2x low pref)
  *   - Partner winning + I need tricks → Still play low (0.5x), save cards
+ *
+ *   FACTOR 4b: DON'T CUT YOUR PARTNER (Medium + Hard, team mode)
+ *   ────────────────────────────────────────────────────────────
+ *   If partner is currently winning the trick (and isn't nil):
+ *   - I'm the last player → never take it from them (-40)
+ *   - Trumping partner's winner with a spade → never (-25)
+ *   - Partner's card is an ace, a spade or Q+ → leave it (-15)
+ *   - We don't need the trick anyway → leave it (-10)
+ *   Overtaking a partner's LOW card in third seat when the team still
+ *   needs tricks is allowed — the fourth player might beat it otherwise.
+ *   Easy AIs get only the last-player rule: even a beginner doesn't
+ *   take a trick their partner has already won.
  *
  *   FACTOR 5: NIL PROTECTION (team mode)
  *   ─────────────────────────────────────
@@ -171,9 +193,12 @@
  *   - Following: If nil bidder is winning, duck UNDER them (+15 for not
  *     winning, -12 for winning). Let them take the trick = bust!
  *
- *   FACTOR 7: BAG WARFARE (team mode)
- *   ──────────────────────────────────
+ *   FACTOR 7: BAG WARFARE + SETTING (team mode)
+ *   ────────────────────────────────────────────
  *   - Opponents made their bid → Force bags. Lead high (+6), win tricks (+4).
+ *   - Opponents still need (almost) every remaining trick → one more trick
+ *     for us SETS them (-bid×10 for them). Stop ducking: win (+20), lead
+ *     high (+8). A set is worth far more than the bag it costs.
  *   - Our team made bid → Extra bag avoidance (-5 for winning).
  *
  *
@@ -216,89 +241,84 @@ class AI {
       const highSpades = spades.filter(c => c.value >= 12).length;
       const kings = hand.filter(c => c.value === 13 && !c.isSpade).length;
       let bid = aces + highSpades + Math.floor(kings * 0.5);
+      // Beginners still know a long spade suit wins tricks
+      bid += Math.max(0, spades.length - 3);
       bid += Math.floor(Math.random() * 2);
       return Math.max(1, Math.min(bid, 7));
     }
 
     // ----- MEDIUM / HARD: Balanced trick counting -----
     let tricks = 0;
+    const hasSpade = (v) => spades.some(c => c.value === v);
+    const spadeCount = spades.length;
 
-    // Spade tricks — count based on rank and position
-    const spadesSorted = [...spades].sort((a, b) => b.value - a.value);
-    const spadeCount = spadesSorted.length;
-    for (let i = 0; i < spadesSorted.length && i < 6; i++) {
-      const v = spadesSorted[i].value;
-      if (v === 14) {
-        tricks += 1;           // A♠ — always wins
-      } else if (v === 13) {
-        // K♠ — wins unless someone has A♠. With more spades, more likely to survive.
-        tricks += spadeCount >= 3 ? 0.85 : 0.7;
-      } else if (v === 12) {
-        // Q♠ — needs A and K gone
-        tricks += (i <= 1) ? 0.65 : 0.4;
-      } else if (v === 11) {
-        // J♠
-        tricks += (i <= 1) ? 0.5 : 0.25;
-      } else if (v >= 8 && spadeCount >= 5) {
-        // Mid spades with 5+ spade length — likely to win late
-        tricks += 0.3;
-      }
+    // High spade tricks — the top of the trump suit is close to guaranteed
+    if (hasSpade(14)) tricks += 1;
+    if (hasSpade(13)) tricks += hasSpade(14) ? 1 : 0.8;
+    if (hasSpade(12)) tricks += (hasSpade(14) && hasSpade(13)) ? 0.95 : (hasSpade(14) || hasSpade(13)) ? 0.7 : 0.45;
+    if (hasSpade(11)) tricks += spadeCount >= 4 ? 0.6 : 0.3;
+    if (hasSpade(10) && spadeCount >= 5) tricks += 0.3;
+
+    // Low spades win tricks two ways: length (opponents run out of trumps
+    // and the small ones win late) and ruffing (voids/singletons in side
+    // suits). The same low spade can't do both, so credit the larger of the
+    // two and only a fraction of the smaller.
+    const lowSpades = spades.filter(c => c.value <= 10).length;
+    const lengthCredit = Math.max(0, spadeCount - 3) * 0.7;
+    let ruffCredit = 0;
+    for (const suit of ['hearts', 'diamonds', 'clubs']) {
+      const n = hand.filter(c => c.suit === suit).length;
+      if (n === 0) ruffCredit += 1.0;
+      else if (n === 1) ruffCredit += 0.5;
+      else if (n === 2) ruffCredit += 0.2;
     }
+    ruffCredit = Math.min(ruffCredit, lowSpades * 0.9);
+    tricks += Math.max(lengthCredit, ruffCredit) + 0.3 * Math.min(lengthCredit, ruffCredit);
 
     // Side suit winners
     for (const suit of ['hearts', 'diamonds', 'clubs']) {
       const suited = hand.filter(c => c.suit === suit).sort((a, b) => b.value - a.value);
-
-      if (suited.length === 0) {
-        // Void — ruffing potential with spare spades
-        const spareSpades = Math.max(0, spades.length - Math.ceil(tricks));
-        if (spareSpades > 0) tricks += 0.6;
-        continue;
-      }
-
-      // Ace: 0.95 (very reliable, ruffing is rare in early tricks)
-      if (suited[0].value === 14) tricks += 0.95;
-
-      // King: depends on ace support and length
+      if (suited.length === 0) continue;
       const hasAce = suited[0].value === 14;
       const hasKing = suited.some(c => c.value === 13);
-      if (hasKing && suited.length >= 2) tricks += hasAce ? 0.7 : 0.45;
-
-      // Queen: needs some support
       const hasQueen = suited.some(c => c.value === 12);
+      // Ace: reliable unless the suit is so long that someone is void early
+      if (hasAce) tricks += suited.length >= 6 ? 0.6 : 0.9;
+      // King: needs the ace to clear or some length to survive the first round
+      if (hasKing) {
+        if (hasAce) tricks += suited.length >= 5 ? 0.6 : 0.8;
+        else tricks += suited.length >= 2 ? 0.55 : 0.3;
+      }
+      // Queen: needs support above and some length
       if (hasQueen && suited.length >= 3) tricks += (hasAce || hasKing) ? 0.4 : 0.2;
-
-      // Singleton ruffing
-      if (suited.length === 1 && spades.length > Math.ceil(tricks)) tricks += 0.35;
-      // Doubleton: slight ruffing potential
-      if (suited.length === 2 && spades.length > Math.ceil(tricks) + 1) tricks += 0.15;
     }
 
-    // FLOOR — prefer underbidding by a fraction, not a whole trick
-    let bid = Math.floor(tricks);
+    // Round to the nearest trick. Underbidding by a whole trick every hand
+    // just piles up bags and leaves the partner to carry the team bid.
+    let bid = Math.round(tricks);
 
-    // Medium: 20% chance to underbid by 1 (was 30% — too aggressive)
-    if (this.difficulty === 'medium') {
-      if (Math.random() > 0.8) bid -= 1;
-    }
+    // Medium: occasionally shades the bid down by one
+    if (this.difficulty === 'medium' && Math.random() > 0.8) bid -= 1;
 
-    // Bag-aware: if team has 7+ bags, bid 1 less
+    // Bag-aware: if the team already carries 7+ bags, bid 1 less
     if (ctx && ctx.teamBags >= 7 && bid > 2) bid -= 1;
 
-    // Team overbid cap at 10
+    // Team overbid cap: an 11+ combined bid needs nearly every trick
     if (partnerBid >= 0) {
-      const teamTotal = partnerBid + bid;
-      if (teamTotal > 10 && this.difficulty !== 'easy') {
-        bid = Math.max(1, 10 - partnerBid);
-      }
+      const cap = this.difficulty === 'hard' ? 11 : 10;
+      if (partnerBid + bid > cap) bid = Math.max(1, cap - partnerBid);
     }
 
-    // Nil consideration (Hard only)
-    if (this.difficulty === 'hard' && tricks <= 0.5 && spades.length <= 1) {
-      if (hand.every(c => c.value <= 9) && Math.random() > 0.5) return 0;
+    // Nil consideration (Hard only): a genuinely weak hand with no high
+    // spades and no aces is worth more as a Nil (+100) than as a bid of 1.
+    if (this.difficulty === 'hard' && partnerBid !== 0 && tricks <= 1.2) {
+      const noAces = !hand.some(c => c.value === 14);
+      const safeSpades = spadeCount <= 3 && spades.every(c => c.value <= 9);
+      const fewKings = hand.filter(c => c.value === 13).length <= 1;
+      if (noAces && safeSpades && fewKings && Math.random() > 0.35) return 0;
     }
 
-    return Math.max(1, Math.min(bid, 8));
+    return Math.max(1, Math.min(bid, 9));
   }
 
   // =========================================================================
@@ -345,6 +365,15 @@ class AI {
       }
       // Following: play highest of suit (wastes winners), or random off-suit
       playable.sort((a, b) => b.value - a.value);
+      // Even a beginner won't take a trick their partner has already won:
+      // as the last player, if partner is winning and isn't nil, play a loser.
+      if (ctx && ctx.teamMode && !partnerNil && trick.length === 3 && ctx.trickPlayers && ctx.myIndex !== undefined) {
+        const pIdx = ctx.trickPlayers.indexOf((ctx.myIndex + 2) % 4);
+        if (pIdx >= 0 && this._isWinning(trick[pIdx], trick, leadSuit)) {
+          const losers = playable.filter(c => !this._wouldWin(c, trick, leadSuit));
+          if (losers.length > 0) return losers[losers.length - 1];
+        }
+      }
       return (coverNil || Math.random() > 0.2) ? playable[0] : playable[Math.floor(Math.random() * playable.length)];
     }
 
@@ -366,7 +395,6 @@ class AI {
     // Bid progress
     let iNeedTricks = true;
     let iMadeBid = false;
-    let partnerNeedsTricks = false;
     let partnerIsNil = false;
     let teamMadeBid = false;
     let tricksLeft = 13;
@@ -376,7 +404,6 @@ class AI {
       iMadeBid = ctx.myBid > 0 && ctx.myTricks >= ctx.myBid;
 
       if (!isFFA) {
-        partnerNeedsTricks = ctx.partnerBid > 0 && ctx.partnerTricks < ctx.partnerBid;
         partnerIsNil = ctx.partnerBid === 0;
       }
 
@@ -386,13 +413,27 @@ class AI {
         if (!isFFA) {
           const myTeam = ctx.allPlayers.filter(p => p.team === ctx.myTeam);
           const tBid = myTeam.filter(p => p.bid > 0).reduce((s, p) => s + p.bid, 0);
-          const tTricks = myTeam.reduce((s, p) => s + p.tricks, 0);
+          // Tricks taken by a nil bidder don't count toward the partner's bid
+          const tTricks = myTeam.filter(p => p.bid > 0).reduce((s, p) => s + p.tricks, 0);
           teamMadeBid = tBid > 0 && tTricks >= tBid;
+          // PARTNERSHIP: the bid is shared. My personal share being in means
+          // nothing while my partner still needs tricks — keep fighting until
+          // the TEAM has made its combined bid, and only then start ducking.
+          if (ctx.myBid > 0) {
+            iNeedTricks = !teamMadeBid;
+            iMadeBid = teamMadeBid;
+          }
         } else {
           teamMadeBid = iMadeBid;
         }
       }
     }
+
+    // Nil partner already played and someone else's card beats theirs: they
+    // are safe in THIS trick, so there's no need to burn a winner on it.
+    const nilPartnerSafe = partnerIsNil && partnerPlayed && partnerTrickIdx >= 0 &&
+      !this._isWinning(trick[partnerTrickIdx], trick, leadSuit);
+    const nilPartnerAtRisk = partnerIsNil && !nilPartnerSafe;
 
     const scored = playable.map(card => {
       let score = 0;
@@ -438,24 +479,21 @@ class AI {
 
       // ===== FACTOR 2: FOLLOWING — CAN WIN =====
       else if (wouldWin) {
-        if (partnerIsNil && !isFFA) {
-          score += 14; // Always win to protect nil partner
+        if (nilPartnerAtRisk && !isFFA) {
+          score += 14; // Win to protect nil partner (they haven't played, or they're winning)
           score -= card.value * 0.2;
         } else if (iNeedTricks && !teamMadeBid) {
-          score += 10;
+          // Team still needs tricks — take it, with the cheapest card that wins.
+          // Must outscore the "dump a low loser" option in Factor 3 (max +8),
+          // otherwise the AI ducks tricks it needs.
+          score += 12;
           score -= card.value * 0.3; // Win cheaply
           if (card.isSpade && leadSuit !== 'spades') score -= 4;
+          if (isLast) score += 6;   // Nobody left to overtake — a sure trick
         } else if (shouldDuck) {
-          // HARD DUCK — almost never win
+          // HARD DUCK — almost never win (team bid is already made)
           score -= 15;
           if (card.isSpade) score -= 10;
-          // Only exception: last player and partner is losing badly
-          if (isLast && !isFFA && partnerPlayed) {
-            const pCard = partnerTrickIdx >= 0 ? trick[partnerTrickIdx] : null;
-            if (pCard && !this._isWinning(pCard, trick, leadSuit) && partnerNeedsTricks && tricksLeft <= (ctx.partnerBid - ctx.partnerTricks)) {
-              score += 18; // Override duck — desperate help
-            }
-          }
         }
       }
 
@@ -491,7 +529,7 @@ class AI {
       }
 
       // ===== FACTOR 5: NIL PROTECTION (team only) =====
-      if (!isFFA && ctx && ctx.partnerBid === 0 && wouldWin) {
+      if (!isFFA && nilPartnerAtRisk && wouldWin) {
         score += 10;
       }
 
@@ -523,14 +561,38 @@ class AI {
         }
       }
 
-      // ===== FACTOR 7: BAG WARFARE (team only) =====
+      // ===== FACTOR 4b: DON'T CUT YOUR PARTNER (Medium + Hard, team only) =====
+      // Partner is currently winning this trick (and isn't nil). Taking it
+      // away from them wastes a winner and gains the team nothing.
+      if (!isFFA && partnerPlayed && partnerTrickIdx >= 0 && !partnerIsNil && wouldWin) {
+        const pCard = trick[partnerTrickIdx];
+        if (pCard && this._isWinning(pCard, trick, leadSuit)) {
+          if (isLast) {
+            score -= 40;                                      // Partner has it — never take it
+          } else if (card.isSpade && leadSuit !== 'spades') {
+            score -= 25;                                      // Never trump partner's winner
+          } else if (pCard.value === 14 || pCard.isSpade || pCard.value >= 12) {
+            score -= 15;                                      // Partner's card is probably good
+          } else if (!iNeedTricks) {
+            score -= 10;                                      // We don't need it anyway
+          }
+        }
+      }
+
+      // ===== FACTOR 7: BAG WARFARE + SETTING (team only) =====
       if (!isFFA && ctx && ctx.allPlayers) {
-        const oppTricks = ctx.allPlayers.filter(p => p.team !== ctx.myTeam).reduce((s, p) => s + p.tricks, 0);
+        const oppTricks = ctx.allPlayers.filter(p => p.team !== ctx.myTeam && p.bid > 0).reduce((s, p) => s + p.tricks, 0);
         const oppBid = ctx.allPlayers.filter(p => p.team !== ctx.myTeam && p.bid > 0).reduce((s, p) => s + p.bid, 0);
-        if (oppTricks >= oppBid && oppBid > 0) {
+        const oppNeeds = oppBid - oppTricks;
+        if (oppBid > 0 && oppNeeds <= 0) {
           // Opponents made bid — force bags
           if (isLeading && card.value >= 12) score += 6;
           if (wouldWin && !teamMadeBid) score += 4;
+        } else if (oppBid > 0 && oppNeeds >= tricksLeft - 1) {
+          // Opponents still need (almost) every remaining trick — one more
+          // trick for us SETS them. Worth far more than a bag. Stop ducking.
+          if (wouldWin) score += 20;
+          if (isLeading && card.value >= 12) score += 8;
         }
         if (teamMadeBid && wouldWin) score -= 5;
       }

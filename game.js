@@ -909,20 +909,26 @@ class Game {
 
         const nonNilBid = p1.filter(p => p.bid > 0).reduce((s, p) => s + p.bid, 0);
         const teamTricks = p1.reduce((s, p) => s + p.tricks, 0);
-        const nonNilTricks = teamTricks - p1.filter(p => p.bid === 0).reduce((s, p) => s + p.tricks, 0);
+        // Tricks taken by a nil bidder never count toward the partner's bid,
+        // but they DO count as bags for the partnership (standard rule).
+        const nilTricks = p1.filter(p => p.bid === 0).reduce((s, p) => s + p.tricks, 0);
+        const nonNilTricks = teamTricks - nilTricks;
+        let bags = nilTricks;
 
         if (nonNilBid > 0) {
           if (nonNilTricks >= nonNilBid) {
             roundScore = nonNilBid * 10;
-            const bags = nonNilTricks - nonNilBid;
-            roundScore += bags;
-            this.teams[t].bags += bags;
-            trackStat('totalBags', bags);
-            while (this.teams[t].bags >= 10) { this.teams[t].bags -= 10; roundScore -= 100; if (this.sfx && t === 0) this.sfx.bagPenalty(); }
+            bags += nonNilTricks - nonNilBid;
           } else {
             roundScore = -nonNilBid * 10;
             setTeams.push(t);
           }
+        }
+        if (bags > 0) {
+          roundScore += bags;
+          this.teams[t].bags += bags;
+          trackStat('totalBags', bags);
+          while (this.teams[t].bags >= 10) { this.teams[t].bags -= 10; roundScore -= 100; if (this.sfx && t === 0) this.sfx.bagPenalty(); }
         }
         roundScore += nilBonuses;
         this.teams[t].score += roundScore;

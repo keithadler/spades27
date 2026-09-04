@@ -62,12 +62,12 @@ The AI uses a 7-factor scoring system for card play:
 | **F1: Leading** | Nil-protect / aggressive / hard-duck / bag-avoid modes |
 | **F2: Following (can win)** | Win cheaply when needed, hard-duck when done |
 | **F3: Following (can't win)** | Dump high cards when done, save high when not |
-| **F4: Partner awareness** | Don't overtake partner, rescue nil partner |
+| **F4: Partner awareness** | Don't overtake or trump partner's winning card, rescue nil partner |
 | **F5: Nil protection** | Always win to cover partner's nil bid |
 | **F6: Nil busting** | Lead low to trap opponent nil, duck under winning nil |
-| **F7: Bag warfare** | Force bags on opponents, avoid own team's bags |
+| **F7: Bag warfare / setting** | Force bags on opponents, avoid own team's bags, fight for the trick that sets the opponents |
 
-Bidding uses conservative trick counting (floor, not round) with bag-aware adjustments and team overbid protection. Full details in the [ai.js source](ai.js).
+Bidding estimates tricks from high spades, spade length, side-suit honours and ruffing potential, rounds to the nearest trick, and applies bag-aware and team-overbid adjustments. In partnership mode "do I need tricks?" is answered for the team, not the individual, so a partner keeps working until the combined bid is made. Full details in the [ai.js source](ai.js).
 
 ## Keyboard Shortcuts
 
@@ -123,6 +123,14 @@ node test.js
 ```
 
 ## Changelog
+
+### v3.1 — September 2026
+- Partnership fix: an AI now keeps taking tricks until the TEAM bid is made, instead of ducking as soon as its own bid was in and leaving its partner to carry the hand
+- AI no longer overtakes or trumps its partner's winning card (all difficulties as last player; Medium/Hard in third seat too)
+- Bidding recalibrated: rounds to the nearest trick and credits spade length and ruffing properly (the table used to bid ~7 of 13 tricks, so nobody ever got set and bags piled up)
+- AI fights for the trick that sets the opponents instead of handing it over
+- Nil cover only spends winners when the nil partner is actually at risk in the trick
+- Team scoring: tricks taken by a busted Nil bidder now count as bags for the partnership (standard rule)
 
 ### v3 — July 2026
 - Fixed a game-corrupting bug where pending AI timers from an abandoned game leaked into the next one (duplicate plays, desynced tricks, and a hang at trick 13)
