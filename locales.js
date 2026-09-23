@@ -33,7 +33,7 @@ LOCALES.en = {
     pass: 'Pass', hint: '💡 Hint',
     yourTurn: 'YOUR TURN', thinking: 'Thinking', turn: 'turn',
     scores: 'Scores', round: 'Round', gameOver: 'GAME OVER',
-    youWin: '🏆 You Win!', wins: 'Wins', close: 'Close', continue_: 'Continue',
+    youWin: '🏆 You Win!', youLose: 'Defeat', wins: 'Wins', close: 'Close', continue_: 'Continue',
     theme: 'Theme', dark: '🌙 Dark', light: '☀️ Light',
     tableTheme: 'Table Theme', audio: 'Audio',
     music: '🎵 Background Music', sfx: '🔊 Sound Effects',
@@ -184,7 +184,7 @@ LOCALES.es = {
     shortcuts: '❓ Atajos', rageQuit: '💀 Abandonar (cuenta como derrota)',
     yourTurn: 'TU TURNO', thinking: 'Pensando', turn: 'turno',
     scores: 'Puntos', round: 'Ronda', gameOver: 'FIN DEL JUEGO',
-    youWin: '🏆 ¡Ganaste!', wins: 'Victorias', close: 'Cerrar', continue_: 'Continuar',
+    youWin: '🏆 ¡Ganaste!', youLose: 'Derrota', wins: 'Victorias', close: 'Cerrar', continue_: 'Continuar',
     theme: 'Tema', dark: '🌙 Oscuro', light: '☀️ Claro',
     tableTheme: 'Tema de Mesa', audio: 'Audio',
     music: '🎵 Música', sfx: '🔊 Efectos',
@@ -310,7 +310,7 @@ LOCALES.ar = {
     shortcuts: '❓ الاختصارات', rageQuit: '💀 انسحاب (يحسب خسارة)',
     yourTurn: 'دورك', thinking: 'يفكر', turn: 'دور',
     scores: 'النقاط', round: 'الجولة', gameOver: 'انتهت اللعبة',
-    youWin: '🏆 فزت!', wins: 'انتصارات', close: 'إغلاق', continue_: 'متابعة',
+    youWin: '🏆 فزت!', youLose: 'هزيمة', wins: 'انتصارات', close: 'إغلاق', continue_: 'متابعة',
     theme: 'المظهر', dark: '🌙 داكن', light: '☀️ فاتح',
     tableTheme: 'لون الطاولة', audio: 'الصوت',
     music: '🎵 موسيقى', sfx: '🔊 مؤثرات',
@@ -428,7 +428,7 @@ LOCALES.zh = {
     shortcuts: '❓ 快捷键', rageQuit: '💀 退出（算作失败）',
     yourTurn: '你的回合', thinking: '思考中', turn: '的回合',
     scores: '分数', round: '第', gameOver: '游戏结束',
-    youWin: '🏆 你赢了！', wins: '胜', close: '关闭', continue_: '继续',
+    youWin: '🏆 你赢了！', youLose: '失败', wins: '胜', close: '关闭', continue_: '继续',
     theme: '主题', dark: '🌙 深色', light: '☀️ 浅色',
     tableTheme: '桌面主题', audio: '音频',
     music: '🎵 背景音乐', sfx: '🔊 音效',
@@ -522,7 +522,7 @@ LOCALES.zh = {
 
 // ---- Rules content per language ----
 const RULES = {
-  en: `<h3>🎯 The Goal</h3><p>Be the first team to reach the target score (usually 500). You play in partnerships — you and the player across from you vs. the other two.</p><h3>🃏 The Deal</h3><p>Standard 52-card deck. Each player gets <strong>13 cards</strong>. Spades are always trump.</p><h3>📢 Bidding</h3><p>Before play, each player bids how many tricks they think they'll win (1–13). Your team's bids are combined. You can also bid <strong>Nil</strong> (zero tricks) for a risky +100 bonus, or <strong>Blind Nil</strong> (+200) before seeing your cards when your team is down 100+.</p><h3>🎮 Playing Tricks</h3><p>The player left of the dealer leads first. You <strong>must follow the lead suit</strong> if you can. If you can't, you may play any card including spades (trump). Highest card of the lead suit wins, unless a spade was played — then highest spade wins.</p><h3>♠ Breaking Spades</h3><p>You can't lead with spades until someone has played a spade on a previous trick (or you only have spades left).</p><h3>💰 Scoring</h3><p>If your team makes its bid: <strong>bid × 10 points</strong> + 1 point per overtrick (bag). If you fail: <strong>−bid × 10 points</strong>.</p><h3>🎒 Bags</h3><p>Overtricks (bags) accumulate. Every <strong>10 bags = −100 penalty</strong>. Don't win too many extra tricks!</p><h3>🎯 Nil Bids</h3><p>Nil = promise to win zero tricks. Success: <strong>+100</strong>. Failure: <strong>−100</strong>. Blind Nil: <strong>+200/−200</strong>.</p><h3>💡 Tips</h3><p>🧮 Count tricks before bidding · ♠ Save spades for when you need them · 🤝 Watch your partner's plays · 🎒 Avoid bags near multiples of 10 · 🎯 Bust opponents' nil bids with low leads</p>`,
+  en: `<h3>🎯 The Goal</h3><p>Be the first team to reach the target score (usually 500). You play in partnerships — you and the player across from you vs. the other two.</p><h3>🃏 The Deal</h3><p>Standard 52-card deck. Each player gets <strong>13 cards</strong>. Spades are always trump.</p><h3>📢 Bidding</h3><p>Before play, each player bids how many tricks they think they'll win (1–13). Your team's bids are combined. You can also bid <strong>Nil</strong> (zero tricks) for a risky +100 bonus, or <strong>Blind Nil</strong> (+200) before seeing your cards when your team is down 100+.</p><h3>🎮 Playing Tricks</h3><p>The player left of the dealer leads first. You <strong>must follow the lead suit</strong> if you can. If you can't, you may play any card including spades (trump). Highest card of the lead suit wins, unless a spade was played — then highest spade wins.</p><h3>♠ Breaking Spades</h3><p>You can't lead with spades until someone has played a spade on a previous trick (or you only have spades left).</p><h3>💰 Scoring</h3><p>If your team makes its bid: <strong>bid × 10 points</strong> + 1 point per overtrick (bag). If you fail: <strong>−bid × 10 points</strong>.</p><h3>🎒 Bags</h3><p>Overtricks (bags) accumulate. Every <strong>10 bags = −100 penalty</strong>. Don't win too many extra tricks!</p><h3>🎯 Nil Bids</h3><p>Nil = promise to win zero tricks. Success: <strong>+100</strong>. Failure: <strong>−100</strong>. Blind Nil: <strong>+200/−200</strong>. Tricks a Nil bidder takes don't help the partner's bid, but they count as bags.</p><h3>🏁 Winning</h3><p>First side to the target score wins. If both pass it on the same hand, the higher score wins; a tie means one more hand. A side that falls to <strong>−200</strong> loses.</p><h3>💡 Tips</h3><p>🧮 Count tricks before bidding · ♠ Save spades for when you need them · 🤝 Watch your partner's plays · 🎒 Avoid bags near multiples of 10 · 🎯 Bust opponents' nil bids with low leads</p>`,
   es: `<h3>🎯 El Objetivo</h3><p>Sé el primer equipo en llegar al puntaje objetivo (normalmente 500). Juegas en parejas — tú y el jugador de enfrente contra los otros dos.</p><h3>🃏 El Reparto</h3><p>Baraja estándar de 52 cartas. Cada jugador recibe <strong>13 cartas</strong>. Las espadas siempre son triunfo.</p><h3>📢 Apuestas</h3><p>Antes de jugar, cada jugador apuesta cuántas bazas cree que ganará (1–13). Las apuestas del equipo se combinan. También puedes apostar <strong>Nulo</strong> (cero bazas) para un bono arriesgado de +100, o <strong>Nulo Ciego</strong> (+200) antes de ver tus cartas cuando tu equipo va perdiendo por 100+.</p><h3>🎮 Jugando Bazas</h3><p>El jugador a la izquierda del repartidor abre primero. <strong>Debes seguir el palo</strong> si puedes. Si no puedes, puedes jugar cualquier carta incluyendo espadas (triunfo).</p><h3>♠ Romper Espadas</h3><p>No puedes abrir con espadas hasta que alguien haya jugado una espada en una baza anterior.</p><h3>💰 Puntuación</h3><p>Si tu equipo cumple su apuesta: <strong>apuesta × 10 puntos</strong> + 1 punto por baza extra (bolsa). Si fallas: <strong>−apuesta × 10</strong>.</p><h3>🎒 Bolsas</h3><p>Las bazas extra se acumulan. Cada <strong>10 bolsas = −100 penalización</strong>.</p><h3>🎯 Apuestas Nulas</h3><p>Nulo = prometes ganar cero bazas. Éxito: <strong>+100</strong>. Fallo: <strong>−100</strong>. Nulo Ciego: <strong>+200/−200</strong>.</p>`,
   ar: `<h3>🎯 الهدف</h3><p>كن أول فريق يصل للنتيجة المطلوبة (عادة 500). تلعب في شراكة — أنت واللاعب المقابل ضد الآخرين.</p><h3>🃏 التوزيع</h3><p>مجموعة ورق عادية 52 ورقة. كل لاعب يحصل على <strong>13 ورقة</strong>. البستوني دائماً ترمب.</p><h3>📢 المزايدة</h3><p>قبل اللعب، كل لاعب يزايد كم أكلة يتوقع يفوز (1-13). مزايدات الفريق تُجمع. تقدر تزايد <strong>صفر</strong> (بدون أكلات) لبونص +100، أو <strong>صفر أعمى</strong> (+200) قبل ما تشوف أوراقك.</p><h3>🎮 لعب الأكلات</h3><p>اللاعب يسار الموزع يبدأ. <strong>لازم تتبع اللون</strong> لو عندك. لو ما عندك، تقدر تلعب أي ورقة بما فيها البستوني.</p><h3>♠ كسر البستوني</h3><p>ما تقدر تفتح ببستوني إلا لو أحد لعب بستوني قبل كذا.</p><h3>💰 النقاط</h3><p>لو فريقك نجح: <strong>مزايدة × 10 نقاط</strong> + 1 لكل أكلة زيادة (كيس). لو فشل: <strong>−مزايدة × 10</strong>.</p><h3>🎒 الأكياس</h3><p>الأكلات الزيادة تتراكم. كل <strong>10 أكياس = −100</strong>.</p><h3>🎯 مزايدة الصفر</h3><p>صفر = تعد ما تفوز بأي أكلة. نجاح: <strong>+100</strong>. فشل: <strong>−100</strong>. صفر أعمى: <strong>+200/−200</strong>.</p>`,
   zh: `<h3>🎯 目标</h3><p>率先达到目标分数（通常500分）。你和对面的玩家组队，对抗另外两人。</p><h3>🃏 发牌</h3><p>标准52张牌。每人<strong>13张</strong>。黑桃永远是王牌。</p><h3>📢 叫牌</h3><p>出牌前，每人预测自己能赢几墩（1-13）。队伍的叫牌合并计算。你也可以叫<strong>零</strong>（不赢任何墩）获得+100奖励，或在落后100+分时叫<strong>盲零</strong>（+200）。</p><h3>🎮 出牌</h3><p>庄家左边的玩家先出。你<strong>必须跟花色</strong>。如果没有该花色，可以出任何牌包括黑桃（王牌）。</p><h3>♠ 破黑桃</h3><p>在有人出过黑桃之前，不能用黑桃领出。</p><h3>💰 计分</h3><p>完成叫牌：<strong>叫牌数 × 10分</strong> + 每多赢1墩得1分（包）。失败：<strong>−叫牌数 × 10分</strong>。</p><h3>🎒 包</h3><p>多赢的墩数累积。每<strong>10个包 = −100分</strong>。</p><h3>🎯 零叫牌</h3><p>零 = 承诺不赢任何墩。成功：<strong>+100</strong>。失败：<strong>−100</strong>。盲零：<strong>+200/−200</strong>。</p>`

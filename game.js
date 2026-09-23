@@ -109,6 +109,7 @@ class Game {
       this._gameEpoch++; // kill in-flight AI turn timers
       this._clearSavedGame();
       this._hideThinking();
+      document.body.classList.remove('bidding');
       for (const id of ['message-overlay', 'bid-overlay']) {
         const el = document.getElementById(id);
         if (el) { el.classList.add('hidden'); el.innerHTML = ''; }
@@ -228,6 +229,18 @@ class Game {
       }
     });
 
+    // Re-fan the hand when the window changes size (only during trick play,
+    // so a resize can never reveal the cards before a Blind Nil decision)
+    let resizeQueued = false;
+    window.addEventListener('resize', () => {
+      if (resizeQueued) return;
+      resizeQueued = true;
+      requestAnimationFrame(() => {
+        resizeQueued = false;
+        if (this.players[0] && this._trickNum >= 1 && !this.roundOver && !this.gameOver) this._updateUI();
+      });
+    });
+
     this.music = new MusicEngine();
     this.sfx = new SFX();
     this._updateRoster();
@@ -259,6 +272,7 @@ class Game {
 
   startGame(rematch) {
     this._gameEpoch++; // invalidate any pending timers from a previous game
+    document.body.classList.remove('bidding');
     const scoreOpt = this._getOption('target-score') || '500';
     if (scoreOpt === 'custom') {
       const ci = document.getElementById('custom-score-input');
@@ -513,9 +527,15 @@ class Game {
         const partnerIdx = (playerIdx + 2) % 4;
         const partnerBid = this.teamMode ? this.players[partnerIdx].bid : -1;
         const teamBags = this.teamMode && this.teams ? this.teams[player.team].bags : 0;
-        const bid = player.ai.chooseBid(player.hand, partnerBid, { teamBags });
+        const myScore = this.teamMode ? this.teams[player.team].score : (player.score || 0);
+        const oppScore = this.teamMode ? this.teams[1 - player.team].score
+          : Math.max(...this.players.filter(p => p !== player).map(p => p.score || 0));
+        const ctx = { teamBags, teamMode: this.teamMode, myScore, oppScore, target: this.targetScore };
+        // Blind Nil is called before looking at the cards, so it comes first
+        const blind = player.ai.chooseBlindNil(partnerBid, ctx);
+        const bid = blind ? 0 : player.ai.chooseBid(player.hand, partnerBid, ctx);
         player.bid = bid;
-        player.blindNil = false;
+        player.blindNil = blind;
         if (this.sfx) { bid === 0 ? this.sfx.nilBid() : this.sfx.bid(); }
         this._showBidAnnouncementFX(player, bid, () => {
           this._currentBidIdx++;
@@ -555,9 +575,9 @@ class Game {
     // Compact score strip
     let html = '<div class="bid-score-strip">';
     if (this.teamMode && this.teams) {
-      html += `<span class="bss-side">🟢 ${this._t('yourTeam')} <b class="bss-green">${this.teams[0].score}</b></span>
+      html += `<span class="bss-side"><i class="tdot us"></i>${this._t('yourTeam')} <b class="bss-green">${this.teams[0].score}</b></span>
         <span class="bss-vs">vs</span>
-        <span class="bss-side">🔴 ${this._t('opponentsTeam')} <b class="bss-red">${this.teams[1].score}</b></span>`;
+        <span class="bss-side"><i class="tdot them"></i>${this._t('opponentsTeam')} <b class="bss-red">${this.teams[1].score}</b></span>`;
     } else {
       for (const p of this.players) {
         html += `<span class="bss-side">${escHTML(p.name)} <b class="bss-blue">${p.score || 0}</b></span>`;
@@ -570,7 +590,7 @@ class Game {
     if (bidsMade.length > 0) {
       html += `<div class="bids-so-far"><span class="bsf-label">${this._t('bidsSoFar')}</span>`;
       for (const p of bidsMade) {
-        const icon = this.teamMode ? (p.team === 0 ? '🟢' : '🔴') : '';
+        const icon = this.teamMode ? (p.team === 0 ? '<i class="tdot us"></i>' : '<i class="tdot them"></i>') : '';
         const bidText = p.blindNil ? '🙈 BN' : p.bid === 0 ? '🎯 Nil' : p.bid;
         html += `<span class="bsf-chip">${icon} ${escHTML(p.name)} <b>${bidText}</b></span>`;
       }
@@ -582,6 +602,7 @@ class Game {
   _showHumanBidUI(player) {
     const overlay = document.getElementById('bid-overlay');
     overlay.classList.remove('hidden');
+    document.body.classList.add('bidding');
     let bidsHtml = this._buildBidsSoFar();
     let html = `<div class="bid-panel">
       <h2>${this._t('yourBid')}</h2>
@@ -615,6 +636,7 @@ class Game {
         player.blindNil = false;
         if (player.bid === 0) trackStat('nilsAttempted');
         overlay.classList.add('hidden'); overlay.innerHTML = '';
+        document.body.classList.remove('bidding');
         if (this.sfx) { player.bid === 0 ? this.sfx.nilBid() : this.sfx.bid(); }
         this._currentBidIdx++;
         this._doBid();
@@ -625,18 +647,18 @@ class Game {
   _showBidSummary(callback) {
     const overlay = document.getElementById('message-overlay');
     overlay.classList.remove('hidden');
-    let html = `<div class="message-box"><h2 style="margin-bottom:16px;background:linear-gradient(180deg,#fff 20%,#4a90d9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">${this._t('bidSummary')}</h2>`;
+    let html = `<div class="message-box"><h2 style="margin-bottom:16px;background:linear-gradient(180deg,#fff 20%,#e8c170);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">${this._t('bidSummary')}</h2>`;
     for (const p of this.players) {
-      const teamLabel = this.teamMode ? (p.team === 0 ? '🟢' : '🔴') : '';
+      const teamLabel = this.teamMode ? (p.team === 0 ? '<i class="tdot us"></i>' : '<i class="tdot them"></i>') : '';
       html += `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
         <span>${teamLabel} ${escHTML(p.name)}</span>
-        <span style="font-weight:800;color:#4a90d9;">${p.blindNil ? '🙈 BLIND NIL' : p.bid === 0 ? 'NIL' : p.bid}</span>
+        <span style="font-weight:800;color:#e8c170;">${p.blindNil ? '🙈 BLIND NIL' : p.bid === 0 ? 'NIL' : p.bid}</span>
       </div>`;
     }
     if (this.teamMode) {
       const t0Bid = this.players[0].bid + this.players[2].bid;
       const t1Bid = this.players[1].bid + this.players[3].bid;
-      html += `<div style="margin-top:12px;font-weight:700;">Team bids: 🟢 ${t0Bid} | 🔴 ${t1Bid}</div>`;
+      html += `<div style="margin-top:12px;font-weight:700;">Team bids: <i class="tdot us"></i>${t0Bid} | <i class="tdot them"></i>${t1Bid}</div>`;
     }
     html += `<button id="bid-summary-ok" class="btn-start" style="margin-top:16px;">${this._t('continue_')}</button></div>`;
     overlay.innerHTML = html;
@@ -754,6 +776,11 @@ class Game {
 
   _playCard(player, card) {
     if (this._playLock) return;
+    // Refuse anything the rules don't allow: out of turn, not in hand,
+    // failing to follow suit, or leading spades before they're broken.
+    if (player.index !== this.currentPlayer) return;
+    const leadSuit = this.trick.length > 0 ? this.trick[0].card.suit : null;
+    if (!player.getPlayableCards(leadSuit, this.spadesBroken).some(c => c.equals(card))) return;
     this._playLock = true;
 
     // Remove from hand
@@ -808,16 +835,7 @@ class Game {
   }
 
   _resolveTrick() {
-    const leadSuit = this.trick[0].card.suit;
-    let winnerIdx = 0;
-    let bestCard = this.trick[0].card;
-
-    for (let i = 1; i < 4; i++) {
-      const c = this.trick[i].card;
-      if (c.isSpade && !bestCard.isSpade) { bestCard = c; winnerIdx = i; }
-      else if (c.isSpade && bestCard.isSpade && c.value > bestCard.value) { bestCard = c; winnerIdx = i; }
-      else if (c.suit === leadSuit && bestCard.suit === leadSuit && c.value > bestCard.value) { bestCard = c; winnerIdx = i; }
-    }
+    const winnerIdx = trickWinnerIndex(this.trick.map(t => t.card));
 
     const winner = this.players[this.trick[winnerIdx].playerIndex];
     winner.tricks++;
@@ -888,76 +906,37 @@ class Game {
     let humanRoundScore = 0;
     const setTeams = [];
 
+    this._roundScores = null;
     if (this.teamMode) {
-      // === TEAM SCORING ===
+      // === TEAM SCORING === (rules.js)
+      this._roundScores = [];
       for (let t = 0; t < 2; t++) {
-        const p1 = this.players.filter(p => p.team === t);
-        let roundScore = 0, nilBonuses = 0;
-
-        for (const p of p1) {
-          if (p.bid === 0) {
-            const bonus = p.blindNil ? 200 : 100;
-            if (p.tricks === 0) {
-              nilBonuses += bonus;
-              if (this.sfx && p.team === 0) this.sfx.nilSuccess();
-            } else {
-              nilBonuses -= bonus;
-              if (this.sfx && p.team === 0) this.sfx.nilFail();
-            }
-          }
+        const members = this.players.filter(p => p.team === t);
+        const r = scoreTeamRound(members, this.teams[t].bags);
+        this._roundScores.push(r);
+        if (r.set) setTeams.push(t);
+        if (r.newBags > 0) trackStat('totalBags', r.newBags);
+        if (this.sfx && t === 0) {
+          for (const p of members) if (p.bid === 0) p.tricks === 0 ? this.sfx.nilSuccess() : this.sfx.nilFail();
+          if (r.penalty > 0) this.sfx.bagPenalty();
         }
-
-        const nonNilBid = p1.filter(p => p.bid > 0).reduce((s, p) => s + p.bid, 0);
-        const teamTricks = p1.reduce((s, p) => s + p.tricks, 0);
-        // Tricks taken by a nil bidder never count toward the partner's bid,
-        // but they DO count as bags for the partnership (standard rule).
-        const nilTricks = p1.filter(p => p.bid === 0).reduce((s, p) => s + p.tricks, 0);
-        const nonNilTricks = teamTricks - nilTricks;
-        let bags = nilTricks;
-
-        if (nonNilBid > 0) {
-          if (nonNilTricks >= nonNilBid) {
-            roundScore = nonNilBid * 10;
-            bags += nonNilTricks - nonNilBid;
-          } else {
-            roundScore = -nonNilBid * 10;
-            setTeams.push(t);
-          }
-        }
-        if (bags > 0) {
-          roundScore += bags;
-          this.teams[t].bags += bags;
-          trackStat('totalBags', bags);
-          while (this.teams[t].bags >= 10) { this.teams[t].bags -= 10; roundScore -= 100; if (this.sfx && t === 0) this.sfx.bagPenalty(); }
-        }
-        roundScore += nilBonuses;
-        this.teams[t].score += roundScore;
-        if (t === 0) humanRoundScore = roundScore;
+        this.teams[t].bags = r.bags;
+        this.teams[t].score += r.total;
+        if (t === 0) humanRoundScore = r.total;
       }
     } else {
-      // === CUTTHROAT (INDIVIDUAL) SCORING ===
+      // === CUTTHROAT (INDIVIDUAL) SCORING === (rules.js)
       for (const p of this.players) {
-        let roundScore = 0;
-        if (p.bid === 0) {
-          const bonus = p.blindNil ? 200 : 100;
-          roundScore = p.tricks === 0 ? bonus : -bonus;
-          if (this.sfx && p.isHuman) { p.tricks === 0 ? this.sfx.nilSuccess() : this.sfx.nilFail(); }
-        } else {
-          if (p.tricks >= p.bid) {
-            roundScore = p.bid * 10;
-            const bags = p.tricks - p.bid;
-            roundScore += bags;
-            if (!p.bags) p.bags = 0;
-            p.bags += bags;
-            trackStat('totalBags', bags);
-            while (p.bags >= 10) { p.bags -= 10; roundScore -= 100; if (this.sfx && p.isHuman) this.sfx.bagPenalty(); }
-          } else {
-            roundScore = -p.bid * 10;
-          }
+        const r = scoreSoloRound(p, p.bags || 0);
+        p.roundScore = r;
+        if (r.newBags > 0) trackStat('totalBags', r.newBags);
+        if (this.sfx && p.isHuman) {
+          if (p.bid === 0) p.tricks === 0 ? this.sfx.nilSuccess() : this.sfx.nilFail();
+          if (r.penalty > 0) this.sfx.bagPenalty();
         }
-        if (!p.score) p.score = 0;
-        p.score += roundScore;
-        if (p.isHuman) humanRoundScore = roundScore;
+        p.bags = r.bags;
+        p.score = (p.score || 0) + r.total;
+        if (p.isHuman) humanRoundScore = r.total;
       }
     }
 
@@ -1032,14 +1011,14 @@ class Game {
     this._updateXPBar(); // achievements grant XP
   }
 
+  _sideScores() {
+    return this.teamMode ? this.teams.map(t => t.score) : this.players.map(p => p.score || 0);
+  }
+
+  // Target reached or a side down to -200, with a clear leader. A tie for
+  // first keeps the game going for another hand (rules.js gameOutcome).
   _isGameWon() {
-    if (this.teamMode) {
-      return this.teams.some(t => t.score >= this.targetScore) ||
-             this.teams.some(t => t.score <= -200);
-    }
-    // Cutthroat: any player reaches target or busts
-    return this.players.some(p => (p.score || 0) >= this.targetScore) ||
-           this.players.some(p => (p.score || 0) <= -200);
+    return gameOutcome(this._sideScores(), this.targetScore).over;
   }
 
   _endGame() {
@@ -1049,15 +1028,14 @@ class Game {
     let humanWon;
 
     if (this.teamMode) {
-      humanWon = this.teams[0].score > this.teams[1].score;
+      humanWon = gameOutcome(this._sideScores(), this.targetScore).winner === 0;
       for (const p of this.players) {
         if (p.team === (humanWon ? 0 : 1)) recordWin(p.name);
         else recordLoss(p.name);
       }
     } else {
       // Cutthroat: highest score wins
-      const maxScore = Math.max(...this.players.map(p => p.score || 0));
-      const winner = this.players.find(p => (p.score || 0) === maxScore);
+      const winner = this.players[gameOutcome(this._sideScores(), this.targetScore).winner];
       humanWon = winner && winner.isHuman;
       for (const p of this.players) {
         if (p === winner) recordWin(p.name);
@@ -1106,7 +1084,7 @@ class Game {
         const members = this.players.filter(p => p.team === t).map(p => escHTML(p.name)).join(' & ');
         const row = document.createElement('div');
         row.className = 'final-score-row' + (isWin ? ' winner' : '');
-        row.innerHTML = `<span>${isWin ? '👑 ' : ''}${t === 0 ? '🟢' : '🔴'} ${members}</span><span>${this.teams[t].score} ${this._t('pts')}</span>`;
+        row.innerHTML = `<span>${isWin ? '👑 ' : ''}${t === 0 ? '<i class="tdot us"></i>' : '<i class="tdot them"></i>'}${members}</span><span>${this.teams[t].score} ${this._t('pts')}</span>`;
         container.appendChild(row);
       }
     } else {
@@ -1119,6 +1097,17 @@ class Game {
         container.appendChild(row);
       }
     }
+
+    // Headline: the four aces for a win, greyed out for a loss
+    const goScreen = document.getElementById('gameover-screen');
+    goScreen.classList.toggle('lost', !humanWon);
+    document.getElementById('gameover-eyebrow').textContent = this._t('gameOver');
+    document.getElementById('gameover-title').textContent = humanWon
+      ? this._t('youWin').replace(/^\W+\s*/u, '')
+      : this._t('youLose');
+    const hero = document.getElementById('gameover-hero');
+    if (hero) hero.innerHTML = ['clubs', 'diamonds', 'hearts', 'spades'].map((su, i) =>
+      `<div class="hero-card" style="--i:${i}">${cardFaceSVG(new Card(su, 'A'))}</div>`).join('');
 
     if (this.sfx) { humanWon ? this.sfx.win() : this.sfx.lose(); }
     this.showScreen('gameover-screen');
@@ -1153,37 +1142,49 @@ class Game {
   _updateScoreBar() {
     const bar = document.getElementById('score-bar-content');
     if (!bar) return;
-    const roundLabel = this._roundNum ? `<span style="font-weight:900;font-size:1.2rem;background:linear-gradient(180deg,#ffe080,#4a90d9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">R${this._roundNum}</span>` : '';
+    const roundLabel = this._roundNum ? `<div class="sb-round"><small>${escHTML(this._t('round')).toUpperCase()}</small><b>${this._roundNum}</b></div>` : '';
+    const target = `<div class="sb-target">${this._t('playingTo')}<b>${this.targetScore}</b></div>`;
 
     if (this.teamMode && this.teams) {
       const t0 = this.teams[0], t1 = this.teams[1];
-      bar.innerHTML = `${roundLabel}
-        <div class="sb-team${t0.score > t1.score ? ' leading' : ''}" style="border-color:rgba(100,200,130,0.3);">
-          <span class="sb-team-name">🟢 ${this._t('yourTeam')}</span>
-          <span class="sb-team-score">${t0.score}</span>
-          <span style="font-size:0.6rem;opacity:0.4;">${t0.bags}🎒</span>
-        </div>
-        <span class="sb-vs">VS</span>
-        <div class="sb-team${t1.score > t0.score ? ' leading' : ''}" style="border-color:rgba(220,100,80,0.3);">
-          <span class="sb-team-name">🔴 ${this._t('opponentsTeam')}</span>
-          <span class="sb-team-score">${t1.score}</span>
-          <span style="font-size:0.6rem;opacity:0.4;">${t1.bags}🎒</span>
-        </div>
-        <span class="sb-target">${this._t('playingTo')} ${this.targetScore}</span>`;
+      const side = (t, cls, name, lead) => `
+        <div class="sb-team ${cls}${lead ? ' leading' : ''}">
+          <div class="sb-names"><span class="sb-team-name">${name}</span><span class="sb-bags">${t.bags} ${escHTML(this._t('bags'))}</span></div>
+          <span class="sb-team-score">${t.score}</span>
+        </div>`;
+      bar.innerHTML = roundLabel
+        + side(t0, 'us', this._t('yourTeam'), t0.score > t1.score)
+        + `<span class="sb-vs">VS</span>`
+        + side(t1, 'them', this._t('opponentsTeam'), t1.score > t0.score)
+        + target;
     } else {
       // Cutthroat: show all 4 players individually
+      const top = Math.max(...this.players.map(p => p.score || 0));
       let html = roundLabel;
       for (const p of this.players) {
-        const isCurrent = p.index === this.currentPlayer;
-        html += `<div class="sb-player-score" style="${isCurrent ? 'border-color:rgba(74,144,217,0.4);background:rgba(74,144,217,0.1);' : ''}">
-          <span class="sb-ps-name" style="max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHTML(p.name)}</span>
+        const cls = (p.isHuman ? ' us' : '') + (p.index === this.currentPlayer ? ' current' : '') + ((p.score || 0) === top && top > 0 ? ' leading' : '');
+        html += `<div class="sb-player-score${cls}">
+          <div class="sb-names"><span class="sb-ps-name">${escHTML(p.name)}</span><span class="sb-bags">${p.bags || 0} ${escHTML(this._t('bags'))}</span></div>
           <span class="sb-team-score">${p.score || 0}</span>
-          <span style="font-size:0.5rem;opacity:0.4;">${p.bags || 0}🎒</span>
         </div>`;
       }
-      html += `<span class="sb-target">${this._t('playingTo')} ${this.targetScore}</span>`;
-      bar.innerHTML = html;
+      bar.innerHTML = html + target;
     }
+  }
+
+  /** Bid / tricks chip for a seat plate. */
+  _seatBidChip(p) {
+    if (!p.hasBid) return `<div class="seat-bid pending"><b>–</b></div>`;
+    if (p.bid === 0) {
+      const label = p.blindNil ? 'BLIND NIL' : 'NIL';
+      return `<div class="seat-bid nil${p.nilBusted ? ' busted' : ''}"><b>${label}</b>${p.nilBusted ? `<span>&nbsp;${p.tricks}</span>` : ''}</div>`;
+    }
+    return `<div class="seat-bid${p.tricks >= p.bid ? ' made' : ''}"><b>${p.tricks}</b><span>/${p.bid}</span><small>${escHTML(this._t('bid'))}</small></div>`;
+  }
+
+  _seatClass(p) {
+    if (!this.teamMode) return p.isHuman ? 'us' : 'ffa';
+    return p.team === 0 ? 'partner' : 'opp';
   }
 
   _renderAllHands() {
@@ -1192,27 +1193,28 @@ class Game {
     if (this._lastHandState === stateKey) return;
     this._lastHandState = stateKey;
 
-    // Render opponent hands (face-down) and human hand
+    // Render opponent seats (fanned backs + plate) and the human's plate
+    if (!this._backSVG) this._backSVG = cardBackSVG();
     for (let i = 1; i <= 3; i++) {
       const pos = this._getPlayerPosition(i);
       const el = document.getElementById('opponent-' + pos);
       if (!el || !this.players[i]) continue;
       const p = this.players[i];
       const isTurn = i === this.currentPlayer;
-      const isPartner = this.teamMode && p.team === 0;
       const rec = getRecord(p.name);
 
+      const n = p.hand.length;
       el.innerHTML = `
-        <div class="opp-label${isTurn ? ' active-turn' : ''}">
-          <img class="opp-avatar" src="${p.avatar}" alt="${escHTML(p.name)}">
-          <div class="opp-info">
-            <span class="opp-name${isTurn ? ' active-turn' : ''}">${isPartner ? '🤝 ' : ''}${escHTML(p.name)}</span>
-            <span class="opp-record">${rec.wins}W ${rec.losses}L</span>
-            ${p.hasBid ? `<span class="bid-status${p.nilBusted ? ' busted' : ''}">${p.blindNil ? '🙈 BN' : p.bid === 0 ? '🎯 NIL' : 'Bid ' + p.bid}${p.nilBusted ? ' 💥' : ''} · Won ${p.tricks}</span>` : ''}
+        <div class="seat ${this._seatClass(p)}${isTurn ? ' active' : ''}">
+          <div class="seat-fan" aria-hidden="true">${p.hand.map((_, k) => `<div class="mini-card" style="--i:${k};--n:${n}">${this._backSVG}</div>`).join('')}</div>
+          <div class="seat-plate">
+            <div class="seat-avatar"><img src="${p.avatar}" alt="${escHTML(p.name)}"></div>
+            <div class="seat-meta">
+              <span class="seat-name">${escHTML(p.name)}</span>
+              <span class="seat-sub">${rec.wins}W · ${rec.losses}L</span>
+            </div>
+            ${this._seatBidChip(p)}
           </div>
-        </div>
-        <div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
-          ${p.hand.map(() => `<div class="face-down${pos === 'left' || pos === 'right' ? ' vertical' : ''}${isPartner ? ' teammate' : ''}"></div>`).join('')}
         </div>
       `;
     }
@@ -1227,15 +1229,18 @@ class Game {
         if (!infoSection) {
           infoSection = document.createElement('div');
           infoSection.className = 'human-info-section';
-          infoSection.style.cssText = 'display:flex;align-items:center;gap:12px;';
           humanInfo.insertBefore(infoSection, humanInfo.firstChild);
         }
         infoSection.innerHTML = `
-          <img class="human-avatar" src="${human.avatar}" alt="${escHTML(human.name)}" style="width:40px;height:40px;border-radius:50%;border:2px solid rgba(74,144,217,0.4);">
-          <div class="human-info-text">
-            <span class="human-name" id="human-name-label" style="cursor:pointer;" title="Double-click to edit">${escHTML(human.name)}</span>
-            <span class="human-record">${rec.wins}W ${rec.losses}L</span>
-            ${human.hasBid ? `<span class="bid-status${human.nilBusted ? ' busted' : ''}">${human.blindNil ? '🙈 Blind Nil' : human.bid === 0 ? '🎯 Nil' : 'Bid ' + human.bid}${human.nilBusted ? ' 💥' : ''} · Won ${human.tricks}</span>` : ''}
+          <div class="seat ${this._seatClass(human)}${this.currentPlayer === 0 && this._trickNum >= 1 ? ' active' : ''}">
+            <div class="seat-plate">
+              <div class="seat-avatar"><img class="human-avatar" src="${human.avatar}" alt="${escHTML(human.name)}"></div>
+              <div class="seat-meta">
+                <span class="seat-name" id="human-name-label" style="cursor:pointer;" title="Double-click to edit">${escHTML(human.name)}</span>
+                <span class="seat-sub">${rec.wins}W · ${rec.losses}L</span>
+              </div>
+              ${this._seatBidChip(human)}
+            </div>
           </div>
         `;
 
@@ -1269,26 +1274,38 @@ class Game {
     const container = document.getElementById('player-hand');
     container.innerHTML = '';
     const isMyTurn = this.currentPlayer === 0;
+    const canAct = isMyTurn && playable.length > 0;
+    container.classList.toggle('my-turn', canAct);
+    container.dataset.turn = this._t('yourTurn');
 
-    for (let i = 0; i < player.hand.length; i++) {
+    // Fan: overlap so the hand fits the screen, with a gentle arc
+    const n = player.hand.length;
+    const cw = this._cardWidth();
+    const avail = Math.min(window.innerWidth - 32 - cw * 0.6, cw * 9); // leave room for the arc's tilt
+    const step = n > 1 ? Math.min(cw * 0.62, (avail - cw) / (n - 1)) : cw;
+    container.style.setProperty('--overlap', (step - cw) + 'px');
+
+    // Only cards that just arrived (a fresh deal) animate in; re-renders
+    // during play must not replay the entrance, or the hand flickers.
+    const shown = this._shownHand || new Set();
+    const now = new Set(player.hand.map(c => c.suit + c.rank));
+    this._shownHand = now;
+
+    for (let i = 0; i < n; i++) {
       const card = player.hand[i];
       const canPlay = isMyTurn && playable.some(c => c.equals(card));
       const el = document.createElement('div');
       // When not my turn, show all cards normally (no dim). When my turn, dim unplayable ones.
-      if (isMyTurn) {
-        el.className = 'hand-card' + (canPlay ? ' playable' : ' not-playable');
-      } else {
-        el.className = 'hand-card';
-      }
-      el.innerHTML = `<span class="card-idx" style="color:${card.color}">${card.rank}<em>${card.symbol}</em></span><span class="card-pip" style="color:${card.color}">${card.symbol}</span><span class="card-idx idx-br" style="color:${card.color}">${card.rank}<em>${card.symbol}</em></span>`;
+      el.className = 'hand-card' + (canAct ? (canPlay ? ' playable' : ' not-playable') : '')
+        + (shown.has(card.suit + card.rank) ? '' : ' dealt-in');
+      const off = i - (n - 1) / 2;
+      el.style.setProperty('--rot', (off * 2.2) + 'deg');
+      el.style.setProperty('--lift', (off * off * 0.6) + 'px');
+      el.innerHTML = cardFaceSVG(card);
       el.setAttribute('role', 'button');
       el.setAttribute('aria-label', `${card.rank} of ${card.suit}${canPlay ? ' - playable' : ''}`);
       el.setAttribute('tabindex', canPlay ? '0' : '-1');
-      // Apply card skin
-      const skin = getCardSkinColors();
-      el.style.background = `linear-gradient(160deg, ${skin.face} 0%, ${skin.faceDark} 100%)`;
-      if (skin.pip) { el.querySelectorAll('.card-idx,.card-pip').forEach(s => s.style.color = card.suit === 'hearts' || card.suit === 'diamonds' ? '#c0392b' : skin.pip); }
-      el.style.animationDelay = `${i * 0.03}s`;
+      el.style.animationDelay = `${i * 0.025}s`;
       if (canPlay) {
         const play = () => {
           if (this._playLock) return;
@@ -1307,22 +1324,18 @@ class Game {
     const area = document.getElementById('trick-area');
     if (!area) return;
     area.innerHTML = '';
-    const skin = getCardSkinColors();
-    for (const t of this.trick) {
+    const from = ['from-bottom', 'from-left', 'from-top', 'from-right'];
+    const winIdx = this.trick.length ? trickWinnerIndex(this.trick.map(t => t.card)) : -1;
+    this.trick.forEach((t, k) => {
       const el = document.createElement('div');
-      el.className = 'trick-card';
-      el.style.position = 'absolute';
-      el.style.background = `linear-gradient(160deg, ${skin.face} 0%, ${skin.faceDark} 100%)`;
-      const pipColor = skin.pip && (t.card.suit === 'spades' || t.card.suit === 'clubs') ? skin.pip : t.card.color;
-      switch (t.playerIndex) {
-        case 0: el.style.bottom = '10px'; el.style.left = '50%'; el.style.transform = 'translateX(-50%)'; break;
-        case 1: el.style.top = '50%'; el.style.left = '10px'; el.style.transform = 'translateY(-50%)'; break;
-        case 2: el.style.top = '10px'; el.style.left = '50%'; el.style.transform = 'translateX(-50%)'; break;
-        case 3: el.style.top = '50%'; el.style.right = '10px'; el.style.transform = 'translateY(-50%)'; break;
-      }
-      el.innerHTML = `<span class="card-idx" style="color:${pipColor}">${t.card.rank}<em>${t.card.symbol}</em></span><span class="card-pip" style="color:${pipColor}">${t.card.symbol}</span><span class="card-idx idx-br" style="color:${pipColor}">${t.card.rank}<em>${t.card.symbol}</em></span>`;
+      el.className = 'trick-card ' + from[t.playerIndex] + (k === winIdx && this.trick.length > 1 ? ' winning' : '');
+      // A little tilt, stable per card so re-renders don't jitter
+      const tilt = ((t.card.value * 7 + SUITS.indexOf(t.card.suit) * 13) % 11) - 5;
+      el.style.setProperty('--tilt', tilt + 'deg');
+      el.style.zIndex = k + 1;
+      el.innerHTML = cardFaceSVG(t.card);
       area.appendChild(el);
-    }
+    });
   }
 
   _renderTrickInfo() {
@@ -1348,7 +1361,7 @@ class Game {
     // Show each player: name, bid, tricks won (color-coded)
     for (const p of this.players) {
       if (!p.hasBid) continue;
-      const icon = this.teamMode ? (p.team === 0 ? '🟢' : '🔴') : '';
+      const icon = this.teamMode ? `<i class="tdot ${p.team === 0 ? 'us' : 'them'}"></i>` : '';
       const bidLabel = p.blindNil ? 'BN' : p.bid === 0 ? 'NIL' : p.bid;
       const isCurrent = p.index === this.currentPlayer;
 
@@ -1360,7 +1373,7 @@ class Game {
         trickClass = p.tricks > p.bid ? 'over' : 'made';
       }
 
-      html += `<div class="bt-row" style="${isCurrent ? 'opacity:1;' : ''}">
+      html += `<div class="bt-row${isCurrent ? ' current' : ''}">
         <span class="bt-name">${icon}${escHTML(p.name)}</span>
         <span class="bt-bid">${bidLabel}</span>
         <span class="bt-tricks ${trickClass}">${p.tricks}</span>
@@ -1374,7 +1387,7 @@ class Game {
       const t0Tricks = this.players.filter(p => p.team === 0).reduce((s, p) => s + p.tricks, 0);
       const t1Tricks = this.players.filter(p => p.team === 1).reduce((s, p) => s + p.tricks, 0);
       html += '<div class="bt-divider"></div>';
-      html += `<div class="bt-team-row"><span>🟢 ${t0Tricks}/${t0Bid}</span><span>🔴 ${t1Tricks}/${t1Bid}</span></div>`;
+      html += `<div class="bt-team-row"><span><i class="tdot us"></i>${t0Tricks}/${t0Bid}</span><span><i class="tdot them"></i>${t1Tricks}/${t1Bid}</span></div>`;
     }
 
     el.innerHTML = html;
@@ -1442,56 +1455,40 @@ class Game {
 
     const pick = (arr) => arr && arr.length ? arr[Math.floor(Math.random() * arr.length)] : '';
 
-    let html = `<div class="message-box" style="max-width:540px;padding:28px 24px;">
-      <h2 style="margin-bottom:20px;font-size:1.6rem;background:linear-gradient(180deg,#fff 20%,#4a90d9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">${this._t('round')} ${this._roundNum} · ${this._t('roundResults')}</h2>`;
+    let html = `<div class="message-box results-box">
+      <div class="rr-eyebrow">${this._t('round')} ${this._roundNum}</div>
+      <h2 class="rr-title">${this._t('roundResults')}</h2>`;
 
     if (this.teamMode && this.teams) {
+      html += `<div class="rr-teams">`;
       for (let t = 0; t < 2; t++) {
         const teamPlayers = this.players.filter(p => p.team === t);
-        const teamBid = teamPlayers.filter(p => p.bid > 0).reduce((s, p) => s + p.bid, 0);
-        const teamTricks = teamPlayers.reduce((s, p) => s + p.tricks, 0);
-        const made = teamBid === 0 || teamTricks >= teamBid;
-        const bags = made ? Math.max(0, teamTricks - teamBid) : 0;
+        // Same numbers the score came from: nil tricks don't count toward
+        // the contract, but they are bags.
+        const r = this._roundScores ? this._roundScores[t] : scoreTeamRound(teamPlayers, 0);
+        const made = r.contract > 0 ? r.made : r.nil >= 0; // double-nil teams live on their nils
+        const bags = r.newBags;
         const isMyTeam = t === 0;
-        const borderColor = isMyTeam ? 'rgba(74,175,108,0.3)' : 'rgba(224,74,58,0.3)';
-        const bgColor = made ? 'rgba(74,175,108,0.06)' : 'rgba(224,74,58,0.06)';
-        const icon = isMyTeam ? '🟢' : '🔴';
-
-        html += `<div style="margin:10px 0;padding:16px;border-radius:14px;background:${bgColor};border:1.5px solid ${borderColor};">`;
-
-        // Team header with avatars
-        html += `<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;">`;
-        for (const p of teamPlayers) {
-          html += `<img src="${p.avatar}" style="width:40px;height:40px;border-radius:50%;border:2px solid ${borderColor};" alt="">`;
-        }
-        html += `<div style="font-weight:900;font-size:1.1rem;">${icon} ${teamPlayers.map(p => escHTML(p.name)).join(' & ')}</div>`;
-        html += `</div>`;
-
-        // Individual player rows
-        for (const p of teamPlayers) {
-          const bidLabel = p.blindNil ? '🙈 BN' : p.bid === 0 ? '🎯 Nil' : p.bid;
-          const nilOk = p.bid === 0 && p.tricks === 0;
-          const nilBust = p.bid === 0 && p.tricks > 0;
-          const trickColor = nilBust ? '#e04a3a' : nilOk ? '#4aaf6c' : (p.bid > 0 && p.tricks >= p.bid) ? '#4aaf6c' : 'rgba(255,255,255,0.5)';
-          const statusIcon = nilBust ? '💥' : nilOk ? '✨' : (p.bid > 0 && p.tricks > p.bid) ? '🎒' : '';
-
-          html += `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;">
-            <img src="${p.avatar}" style="width:28px;height:28px;border-radius:50%;opacity:0.8;" alt="">
-            <span style="flex:1;font-weight:700;font-size:0.9rem;">${escHTML(p.name)}</span>
-            <span style="font-weight:800;color:#4a90d9;min-width:36px;text-align:center;">${bidLabel}</span>
-            <span style="font-weight:800;color:${trickColor};min-width:24px;text-align:center;">${p.tricks}</span>
-            <span style="font-size:0.85rem;min-width:20px;">${statusIcon}</span>
-          </div>`;
-        }
-
-        // Result banner
-        const resultEmoji = made ? (bags === 0 ? '🎯' : bags >= 3 ? '🎒😬' : '✅') : '🚫';
         const resultText = made ? (bags === 0 ? this._t('perfect') : this._t('made')) : this._t('set');
-        const resultColor = made ? '#4aaf6c' : '#e04a3a';
-        html += `<div style="margin-top:10px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.04);text-align:center;">
-          <span style="font-size:1.3rem;font-weight:900;color:${resultColor};">${resultEmoji} ${resultText}</span>
-          <div style="font-size:0.8rem;opacity:0.5;margin-top:2px;">Score: ${this.teams[t].score} · ${this.teams[t].bags} bags</div>
-        </div>`;
+
+        html += `<div class="rr-team ${isMyTeam ? 'us' : 'them'} ${made ? 'made' : 'set'}">
+          <div class="rr-team-head">
+            <div class="rr-avatars">${teamPlayers.map(p => `<img src="${p.avatar}" alt="">`).join('')}</div>
+            <div class="rr-team-name">${isMyTeam ? this._t('yourTeam') : this._t('opponentsTeam')}</div>
+            <div class="rr-delta">${r.total >= 0 ? '+' : ''}${r.total}</div>
+          </div>
+          <div class="rr-grid">
+            <span class="rr-h"></span><span class="rr-h">${this._t('bid')}</span><span class="rr-h">${this._t('tricks')}</span>`;
+        for (const p of teamPlayers) {
+          const bidLabel = p.blindNil ? 'BLIND NIL' : p.bid === 0 ? 'NIL' : p.bid;
+          const cls = p.bid === 0 ? (p.tricks === 0 ? 'good' : 'bad') : (p.tricks >= p.bid ? 'good' : '');
+          html += `<span class="rr-name">${escHTML(p.name)}</span><span class="rr-bid">${bidLabel}</span><span class="rr-tricks ${cls}">${p.tricks}</span>`;
+        }
+        html += `</div>
+          <div class="rr-foot">
+            <span class="rr-badge">${resultText}</span>
+            <span class="rr-detail">${r.contract > 0 ? `${r.won}/${r.contract}` : ''}${bags ? ` · +${bags} ${this._t('bags')}` : ''}${r.penalty ? ` · <b>−${r.penalty}</b>` : ''}</span>
+          </div>`;
 
         // Trash talk from AI players on this team
         const aiOnTeam = teamPlayers.filter(p => !p.isHuman);
@@ -1502,53 +1499,40 @@ class Game {
           else if (made && !isMyTeam) phrase = getPhrase(talker, 'opponent');
           else if (!made && isMyTeam) phrase = getPhrase(talker, 'draw');
           else if (!made && !isMyTeam) phrase = getPhrase(talker, 'win');
-          if (phrase) {
-            html += `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,0.03);">
-              <img src="${talker.avatar}" style="width:24px;height:24px;border-radius:50%;" alt="">
-              <span style="font-size:0.85rem;font-style:italic;opacity:0.8;">"${escHTML(phrase)}"</span>
-            </div>`;
-          }
+          if (phrase) html += `<div class="rr-quote"><img src="${talker.avatar}" alt=""><span>“${escHTML(phrase)}”</span></div>`;
         }
-
         html += `</div>`;
       }
+      html += `</div>`;
 
-      // Score comparison bar
+      // Race to the target
       const s0 = this.teams[0].score, s1 = this.teams[1].score;
-      const maxS = Math.max(Math.abs(s0), Math.abs(s1), 1);
-      const pct0 = Math.max(5, Math.round((Math.max(0, s0) / this.targetScore) * 100));
-      const pct1 = Math.max(5, Math.round((Math.max(0, s1) / this.targetScore) * 100));
-      html += `<div style="margin-top:12px;">
-        <div style="display:flex;gap:4px;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.06);">
-          <div style="width:${pct0}%;background:linear-gradient(90deg,#4aaf6c,#2d8a4e);border-radius:4px;transition:width 0.5s;"></div>
-          <div style="flex:1;"></div>
-          <div style="width:${pct1}%;background:linear-gradient(90deg,#e04a3a,#b83025);border-radius:4px;transition:width 0.5s;"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:0.7rem;opacity:0.4;margin-top:4px;">
-          <span>🟢 ${s0}</span>
-          <span>${this._t('playingTo')} ${this.targetScore}</span>
-          <span>🔴 ${s1}</span>
-        </div>
+      const pct = (v) => Math.max(0, Math.min(100, Math.round((v / this.targetScore) * 100)));
+      html += `<div class="rr-race">
+        <div class="rr-lane us"><span class="rr-lane-label">${this._t('yourTeam')}</span><div class="rr-bar"><i style="width:${pct(s0)}%"></i></div><b>${s0}</b></div>
+        <div class="rr-lane them"><span class="rr-lane-label">${this._t('opponentsTeam')}</span><div class="rr-bar"><i style="width:${pct(s1)}%"></i></div><b>${s1}</b></div>
+        <div class="rr-target">${this._t('playingTo')} ${this.targetScore}</div>
       </div>`;
 
     } else {
       // Cutthroat
       const sorted = [...this.players].sort((a, b) => (b.score || 0) - (a.score || 0));
-      for (const p of sorted) {
+      html += `<div class="rr-standings"><span class="rr-h"></span><span class="rr-h"></span><span class="rr-h">${this._t('bid')}</span><span class="rr-h">${this._t('tricks')}</span><span class="rr-h">+/−</span><span class="rr-h">${this._t('pts')}</span>`;
+      sorted.forEach((p, rank) => {
+        const r = p.roundScore || { total: 0 };
         const made = p.bid === 0 ? p.tricks === 0 : p.tricks >= p.bid;
-        const bidLabel = p.blindNil ? '🙈 BN' : p.bid === 0 ? '🎯 Nil' : p.bid;
-        const resultColor = made ? '#4aaf6c' : '#e04a3a';
-        html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
-          <img src="${p.avatar}" style="width:32px;height:32px;border-radius:50%;" alt="">
-          <span style="flex:1;font-weight:700;">${escHTML(p.name)}</span>
-          <span style="font-weight:800;color:#4a90d9;">${bidLabel}</span>
-          <span style="font-weight:800;color:${resultColor};">${p.tricks}</span>
-          <span style="font-weight:900;color:#4a90d9;min-width:40px;text-align:right;">${p.score || 0}</span>
-        </div>`;
-      }
+        const bidLabel = p.blindNil ? 'BLIND NIL' : p.bid === 0 ? 'NIL' : p.bid;
+        html += `<span class="rr-rank">${rank + 1}</span>
+          <span class="rr-name"><img src="${p.avatar}" alt="">${escHTML(p.name)}</span>
+          <span class="rr-bid">${bidLabel}</span>
+          <span class="rr-tricks ${made ? 'good' : 'bad'}">${p.tricks}</span>
+          <span class="rr-delta-sm ${r.total >= 0 ? 'good' : 'bad'}">${r.total >= 0 ? '+' : ''}${r.total}</span>
+          <span class="rr-score">${p.score || 0}</span>`;
+      });
+      html += `</div>`;
     }
 
-    html += `<button id="round-results-ok" class="btn-start" style="margin-top:16px;">${this._t('continue_')}</button></div>`;
+    html += `<button id="round-results-ok" class="btn-start" style="margin-top:18px;">${this._t('continue_')}</button></div>`;
     overlay.innerHTML = html;
 
     // Particles for winning team
@@ -1572,7 +1556,7 @@ class Game {
     if (!el) return;
     el.classList.remove('hidden');
     el.innerHTML = `<div class="think-card">
-      <img class="think-avatar" src="${player.avatar}" style="width:36px;height:36px;border-radius:50%;border:2px solid rgba(74,144,217,0.4);" alt="">
+      <img class="think-avatar" src="${player.avatar}" style="width:36px;height:36px;border-radius:50%;border:2px solid rgba(232,193,112,0.4);" alt="">
       <div class="think-info">
         <div class="think-name">${escHTML(player.name)}</div>
         <div class="think-label">${this._t('thinking')} <span class="thinking-dots-lg"><span></span><span></span><span></span></span></div>
@@ -1801,7 +1785,7 @@ class Game {
       div.className = 'log-entry';
       div.innerHTML = `<span class="log-num">R${e.round} T${e.trick}</span>
         <div>${e.cards.map(c => `<span style="margin-right:8px;">${escHTML(c.player)}: <span style="font-weight:700;">${c.card}</span></span>`).join('')}
-        <span style="color:#4a90d9;font-weight:700;">→ ${escHTML(e.winner)}</span></div>`;
+        <span style="color:#e8c170;font-weight:700;">→ ${escHTML(e.winner)}</span></div>`;
       container.appendChild(div);
     }
   }
@@ -1873,7 +1857,7 @@ class Game {
             <button class="btn-option${code === detected ? ' active' : ''}" data-lang="${code}" style="display:flex;align-items:center;gap:10px;padding:14px 16px;font-size:1rem;">
               <span style="font-size:1.6rem;">${loc.flag}</span>
               <span>${loc.name}</span>
-              ${code === detected ? '<span style="margin-left:auto;font-size:0.65rem;opacity:0.5;background:rgba(74,144,217,0.2);padding:2px 6px;border-radius:4px;">auto</span>' : ''}
+              ${code === detected ? '<span style="margin-left:auto;font-size:0.65rem;opacity:0.5;background:rgba(232,193,112,0.2);padding:2px 6px;border-radius:4px;">auto</span>' : ''}
             </button>
           `).join('')}
         </div>

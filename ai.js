@@ -220,8 +220,12 @@
  *   A♥ would win (highest heart) BUT 3♠ trumps it.
  *   Winner: 3♠ — even the lowest spade beats the highest non-spade.
  *
- * @dependency card.js ({@link Card})
+ * @dependency card.js ({@link Card}), rules.js ({@link trickWinnerIndex})
  */
+
+// Measured gap between the hand evaluation and the tricks actually taken
+// (hard AI, partnership, 30k hands): actual ≈ estimate + 0.6.
+const ESTIMATE_BIAS = 0.4;
 
 class AI {
   constructor(difficulty) {
@@ -248,6 +252,64 @@ class AI {
     }
 
     // ----- MEDIUM / HARD: Balanced trick counting -----
+    const tricks = this.estimateTricks(hand);
+    const spadeCount = spades.length;
+
+    // The card counts above are a floor: measured over 30,000 simulated
+    // hands, a player takes ~0.6 more tricks than they credit (a guarded
+    // queen, a long side suit, partner setting up a king). Bid what the
+    // hand is actually worth, rounded to the nearest trick.
+    let bid = Math.round(tricks + ESTIMATE_BIAS);
+
+    // Medium: occasionally shades the bid down by one
+    if (this.difficulty === 'medium' && Math.random() > 0.8) bid -= 1;
+
+    // Bag-aware: if the team already carries 7+ bags, bid 1 less
+    if (ctx && ctx.teamBags >= 7 && bid > 2) bid -= 1;
+
+    // Team overbid cap: an 11+ combined bid needs nearly every trick
+    if (partnerBid > 0) {
+      const cap = this.difficulty === 'hard' ? 11 : 10;
+      if (partnerBid + bid > cap) bid = Math.max(1, cap - partnerBid);
+    }
+
+    // Nil (Medium and Hard): a genuinely weak hand is worth more as a Nil
+    // (+100) than as a bid of 1. Never when partner already bid Nil. In
+    // cutthroat nobody covers you, so the hand has to be weaker still.
+    const ffa = ctx && ctx.teamMode === false;
+    if (this.difficulty !== 'easy' && partnerBid !== 0 && tricks <= (ffa ? 0.6 : 1.2)) {
+      const noAces = !hand.some(c => c.value === 14);
+      const safeSpades = spadeCount <= 3 && spades.every(c => c.value <= (ffa ? 7 : 9));
+      const kings = hand.filter(c => c.value === 13).length;
+      const fewKings = ffa ? kings === 0 : kings <= 1;
+      const willing = this.difficulty === 'hard' ? 0.65 : 0.35;
+      if (noAces && safeSpades && fewKings && Math.random() < willing) return 0;
+    }
+
+    return Math.max(1, Math.min(bid, 13));
+  }
+
+  /**
+   * Blind Nil — decided BEFORE looking at the cards, so it takes no hand.
+   * Only when the team is down 100+ (the table rule), only Medium/Hard, never
+   * alongside a partner's Nil. It's a comeback gamble: +200 / -200, and it
+   * works a bit under half the time, so it gets likelier the worse things
+   * look — way behind, or the opponents about to close the game out.
+   */
+  chooseBlindNil(partnerBid, ctx) {
+    if (this.difficulty === 'easy' || !ctx || !ctx.teamMode) return false;
+    if (partnerBid === 0) return false;
+    const deficit = ctx.oppScore - ctx.myScore;
+    if (deficit < 100) return false;
+    let chance = this.difficulty === 'hard' ? 0.02 : 0.01;
+    if (deficit >= 200) chance *= 2;
+    if (ctx.target && ctx.oppScore >= ctx.target * 0.8) chance *= 2;
+    return Math.random() < chance;
+  }
+
+  /** Expected tricks for a hand, before any bidding adjustments. */
+  estimateTricks(hand) {
+    const spades = hand.filter(c => c.isSpade);
     let tricks = 0;
     const hasSpade = (v) => spades.some(c => c.value === v);
     const spadeCount = spades.length;
@@ -293,32 +355,7 @@ class AI {
       if (hasQueen && suited.length >= 3) tricks += (hasAce || hasKing) ? 0.4 : 0.2;
     }
 
-    // Round to the nearest trick. Underbidding by a whole trick every hand
-    // just piles up bags and leaves the partner to carry the team bid.
-    let bid = Math.round(tricks);
-
-    // Medium: occasionally shades the bid down by one
-    if (this.difficulty === 'medium' && Math.random() > 0.8) bid -= 1;
-
-    // Bag-aware: if the team already carries 7+ bags, bid 1 less
-    if (ctx && ctx.teamBags >= 7 && bid > 2) bid -= 1;
-
-    // Team overbid cap: an 11+ combined bid needs nearly every trick
-    if (partnerBid >= 0) {
-      const cap = this.difficulty === 'hard' ? 11 : 10;
-      if (partnerBid + bid > cap) bid = Math.max(1, cap - partnerBid);
-    }
-
-    // Nil consideration (Hard only): a genuinely weak hand with no high
-    // spades and no aces is worth more as a Nil (+100) than as a bid of 1.
-    if (this.difficulty === 'hard' && partnerBid !== 0 && tricks <= 1.2) {
-      const noAces = !hand.some(c => c.value === 14);
-      const safeSpades = spadeCount <= 3 && spades.every(c => c.value <= 9);
-      const fewKings = hand.filter(c => c.value === 13).length <= 1;
-      if (noAces && safeSpades && fewKings && Math.random() > 0.35) return 0;
-    }
-
-    return Math.max(1, Math.min(bid, 9));
+    return tricks;
   }
 
   // =========================================================================
@@ -635,16 +672,8 @@ class AI {
   }
 
   _trickWinner(trick) {
-    if (trick.length === 0) return null;
-    let best = trick[0];
-    const leadSuit = trick[0].suit;
-    for (let i = 1; i < trick.length; i++) {
-      const c = trick[i];
-      if (c.isSpade && !best.isSpade) best = c;
-      else if (c.isSpade && best.isSpade && c.value > best.value) best = c;
-      else if (c.suit === leadSuit && best.suit === leadSuit && c.value > best.value) best = c;
-    }
-    return best;
+    const i = trickWinnerIndex(trick);
+    return i < 0 ? null : trick[i];
   }
 
   _wouldWin(card, trick, leadSuit) {

@@ -29,7 +29,7 @@ const sandbox = {
 vm.createContext(sandbox);
 
 // Load source files
-for (const f of ['locales.js','card.js','player.js','ai.js','stats.js']) {
+for (const f of ['locales.js','card.js','player.js','rules.js','ai.js','stats.js']) {
   vm.runInContext(fs.readFileSync(f, 'utf8'), sandbox, { filename: f });
 }
 
@@ -179,6 +179,78 @@ assert(ai._trickWinner(t4).equals(new Card('clubs','3')), 'Lead suit wins when n
 // Off-suit doesn't beat lead
 const t5 = [new Card('clubs','5'), new Card('hearts','A'), new Card('diamonds','A'), new Card('clubs','2')];
 assert(ai._trickWinner(t5).equals(new Card('clubs','5')), 'Off-suit aces dont beat lead');
+
+// Test 9: Rules — trick winner (rules.js)
+console.log('\\n📜 Rules: Trick Winner');
+const C = (r, su) => new Card(su, r);
+assert(trickWinnerIndex([C('7','hearts'), C('K','diamonds'), C('3','spades'), C('A','hearts')]) === 2, 'Any spade trumps the led suit');
+assert(trickWinnerIndex([C('2','clubs'), C('A','hearts'), C('A','diamonds'), C('3','clubs')]) === 3, 'Off-suit aces never win');
+assert(trickWinnerIndex([C('Q','spades'), C('K','spades'), C('2','spades'), C('A','hearts')]) === 1, 'Spade lead: highest spade');
+assert(trickWinnerIndex([C('5','diamonds')]) === 0, 'Single card leads and wins');
+
+// Test 10: Rules — partnership scoring
+console.log('\\n🧮 Rules: Partnership Scoring');
+const P = (bid, tricks, blindNil) => ({ bid, tricks, blindNil: !!blindNil });
+let r = scoreTeamRound([P(4,4), P(3,3)], 0);
+assert(r.total === 70 && r.made && r.newBags === 0, 'Made 7 exactly: +70');
+r = scoreTeamRound([P(4,6), P(3,3)], 0);
+assert(r.total === 72 && r.newBags === 2, 'Made 7 with 9 tricks: +72, 2 bags');
+r = scoreTeamRound([P(4,5), P(3,1)], 0);
+assert(r.total === -70 && r.set, 'Team 6 of 7 is set: -70');
+r = scoreTeamRound([P(4,6), P(3,1)], 0);
+assert(r.total === 70 && r.made, 'Partner carries the shared contract: 6+1 = 7, +70');
+r = scoreTeamRound([P(0,0), P(4,5)], 0);
+assert(r.total === 100 + 40 + 1, 'Nil made + partner makes 4 with a bag: +141');
+r = scoreTeamRound([P(0,2), P(4,3)], 0);
+assert(r.set && r.total === -100 - 40 + 2, 'Busted nil tricks do not count toward the bid, but are bags: -138');
+r = scoreTeamRound([P(0,0,true), P(3,3)], 0);
+assert(r.total === 230, 'Blind nil made: +200 on top of the contract');
+r = scoreTeamRound([P(0,1,true), P(3,3)], 0);
+assert(r.total === -200 + 30 + 1, 'Blind nil busted: -200');
+r = scoreTeamRound([P(0,0), P(0,13)], 0);
+assert(r.total === 100 - 100 + 13 - 100 && r.contract === 0 && r.bags === 3, 'Double nil, one busted: nils cancel, 13 bags trigger the penalty');
+r = scoreTeamRound([P(3,5), P(3,3)], 8);
+assert(r.bags === 0 && r.penalty === 100 && r.total === 60 + 2 - 100, 'Reaching 10 bags costs 100 and rolls over');
+r = scoreTeamRound([P(3,8), P(3,5)], 5);
+assert(r.bags === 2 && r.penalty === 100, '5 + 7 bags = 12 -> one penalty, 2 carried');
+
+// Test 11: Rules — cutthroat scoring
+console.log('\\n🔪 Rules: Cutthroat Scoring');
+assert(scoreSoloRound(P(3,4), 0).total === 31, 'Solo made with a bag: +31');
+assert(scoreSoloRound(P(3,2), 0).total === -30, 'Solo set: -30');
+assert(scoreSoloRound(P(0,0), 0).total === 100, 'Solo nil made: +100');
+const sn = scoreSoloRound(P(0,2), 0);
+assert(sn.total === -98 && sn.newBags === 2, 'Solo busted nil: -100, tricks are bags');
+
+// Test 12: Rules — game end
+console.log('\\n🏁 Rules: Game End');
+assert(!gameOutcome([480, 300], 500).over, 'Nobody at target: keep playing');
+assert(gameOutcome([510, 300], 500).winner === 0, 'Reach 500 first: win');
+assert(gameOutcome([520, 540], 500).winner === 1, 'Both past 500: higher score wins');
+assert(!gameOutcome([530, 530], 500).over, 'Tied past 500: play another hand');
+assert(gameOutcome([-200, 150], 500).winner === 1, 'Falling to -200 loses');
+assert(gameOutcome([100, 510, 90, -20], 500).winner === 1, 'Cutthroat: first to target wins');
+assert(!gameOutcome([510, 510, 0, 0], 500).over, 'Cutthroat tie for first: play on');
+
+// Test 13: AI bidding rules
+console.log('\\n🙈 AI Nil & Blind Nil');
+const aiM = new AI('medium');
+assert(!aiH.chooseBlindNil(-1, { teamMode: true, myScore: 200, oppScore: 250, target: 500 }), 'No blind nil when down < 100');
+assert(!aiH.chooseBlindNil(0, { teamMode: true, myScore: 0, oppScore: 450, target: 500 }), 'No blind nil next to a partner nil');
+assert(!aiE.chooseBlindNil(-1, { teamMode: true, myScore: 0, oppScore: 450, target: 500 }), 'Easy AI never goes blind');
+assert(!aiH.chooseBlindNil(-1, { teamMode: false, myScore: 0, oppScore: 450, target: 500 }), 'No blind nil in cutthroat');
+let blinds = 0;
+for (let i = 0; i < 2000; i++) if (aiH.chooseBlindNil(-1, { teamMode: true, myScore: 0, oppScore: 450, target: 500 })) blinds++;
+assert(blinds > 0 && blinds < 400, 'Hard AI sometimes goes blind when far behind: ' + blinds + '/2000');
+let nilWithPartnerNil = 0;
+for (let i = 0; i < 200; i++) if (aiH.chooseBid(weakHand, 0, { teamMode: true }) === 0) nilWithPartnerNil++;
+assert(nilWithPartnerNil === 0, 'Never nil when partner already bid nil');
+let medNils = 0;
+for (let i = 0; i < 400; i++) if (aiM.chooseBid(weakHand, -1, { teamMode: true }) === 0) medNils++;
+assert(medNils > 0, 'Medium AI bids nil on a hopeless hand sometimes: ' + medNils + '/400');
+const monster = ['A','K','Q','J','10','9','8','7'].map(rk => C(rk,'spades')).concat([C('A','hearts'), C('K','hearts'), C('A','diamonds'), C('A','clubs'), C('K','clubs')]);
+const mb = aiH.chooseBid(monster, -1, { teamMode: false });
+assert(mb >= 10 && mb <= 13, 'Monster hand can bid 10+: ' + mb);
 
 console.log('\\n' + '='.repeat(40));
 console.log('Results: ' + passed + ' passed, ' + failed + ' failed');

@@ -4,11 +4,28 @@
  * @copyright 2026 Keith Adler. MIT License.
  */
 
+// Character portraits: DiceBear "Avataaars", held to a table-appropriate
+// look (smart clothes, friendly faces, natural skin and hair colors, no
+// novelty hats) on jewel-tone backgrounds that sit well against the felt.
+const AVATAR_OPTIONS = [
+  'mouth=smile,default,twinkle',
+  'eyes=default,happy,wink,squint',
+  'eyebrows=default,defaultNatural,raisedExcitedNatural,upDownNatural',
+  'clothing=blazerAndShirt,blazerAndSweater,collarAndSweater,shirtVNeck',
+  'clothesColor=262e33,3c4f5c,25557c,5199e4,929598,e6e6e6,65c9ff,ff5c5c',
+  'top=shortFlat,shortRound,shortWaved,shortCurly,theCaesar,theCaesarAndSidePart,sides,dreads01,frizzle,shaggy,bob,bun,curly,curvy,straight01,straight02,straightAndStrand,longButNotTooLong,miaWallace,bigHair,fro,dreads',
+  'hairColor=2c1b18,4a312c,724133,a55728,b58143,c93305,e8e1e1,d6b370',
+  'skinColor=614335,ae5d29,d08b5b,edb98a',
+  'accessoriesProbability=15', 'accessories=prescription01,prescription02,round',
+  'facialHairProbability=0',
+  'backgroundType=gradientLinear', 'backgroundColor=1f4d3a,2b3f6b,5a2336,4a2f6b,6b4a1f,1f4f5a',
+  'scale=118', 'translateY=6',
+].join('&');
 function avatarURL(seed) {
-  return `https://api.dicebear.com/9.x/open-peeps/svg?seed=${encodeURIComponent(seed)}&radius=50&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+  return `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(seed)}&${AVATAR_OPTIONS}`;
 }
 // Fallback SVG if avatar fails to load
-const FALLBACK_AVATAR = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="32" fill="#4a6a9a"/><text x="32" y="40" text-anchor="middle" fill="#fff" font-size="28">♠</text></svg>');
+const FALLBACK_AVATAR = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="32" fill="#2a3f5c"/><text x="32" y="42" text-anchor="middle" fill="#e8c170" font-size="30">♠</text></svg>');
 // Swap any avatar that fails to load (e.g. offline) for the fallback
 window.addEventListener('error', (e) => {
   const t = e.target;
@@ -65,24 +82,23 @@ function pickRandomNames(count) {
 
 const TABLE_THEMES = [
   { id: 'random', name: 'Random', felt: '', dark: '' },
-  { id: 'green', name: 'Classic Green', felt: '#1e7a35', dark: '#0d3a18' },
-  { id: 'blue', name: 'Ocean Blue', felt: '#1a4a7a', dark: '#0a2a4a' },
-  { id: 'red', name: 'Casino Red', felt: '#7a1a2a', dark: '#3a0a14' },
-  { id: 'purple', name: 'Royal Purple', felt: '#4a1a6a', dark: '#2a0a3a' },
-  { id: 'wood', name: 'Wooden', felt: '#6a4a2a', dark: '#3a2a14' },
+  { id: 'green', name: 'Classic Green', felt: '#1f7a44', dark: '#0b3a20' },
+  { id: 'blue', name: 'Ocean Blue', felt: '#1d5288', dark: '#0a2344' },
+  { id: 'red', name: 'Casino Red', felt: '#8a1c2c', dark: '#3a0812' },
+  { id: 'purple', name: 'Royal Purple', felt: '#4f2277', dark: '#200a36' },
+  { id: 'wood', name: 'Wooden', felt: '#7a5230', dark: '#3a2412' },
 ];
-function getTableTheme() { return localStorage.getItem('spades_table_theme') || 'blue'; }
+function getTableTheme() { return localStorage.getItem('spades_table_theme') || 'green'; }
 function setTableTheme(id) { localStorage.setItem('spades_table_theme', id); applyTableTheme(); }
+// The felt is drawn by the table itself (styles.css #game-layout::before);
+// a theme only supplies its two colors.
 function applyTableTheme() {
   const id = getTableTheme();
   let t;
   if (id === 'random') { const real = TABLE_THEMES.filter(t => t.id !== 'random'); t = real[Math.floor(Math.random() * real.length)]; }
-  else t = TABLE_THEMES.find(t => t.id === id) || TABLE_THEMES[2];
+  else t = TABLE_THEMES.find(t => t.id === id) || TABLE_THEMES[1];
   document.body.style.setProperty('--felt', t.felt);
-  document.body.style.setProperty('--dark', t.dark);
-  let style = document.getElementById('theme-style');
-  if (!style) { style = document.createElement('style'); style.id = 'theme-style'; document.head.appendChild(style); }
-  style.textContent = `body::before { background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,0.5) 100%), radial-gradient(ellipse at 50% 50%, ${t.felt} 0%, ${t.dark} 80%) !important; }`;
+  document.body.style.setProperty('--felt-dark', t.dark);
 }
 applyTableTheme();
 
@@ -112,7 +128,7 @@ function spawnParticles(x, y, count, type) {
     const duration = 0.6 + Math.random() * 0.6;
 
     if (type === 'particle-confetti') {
-      p.style.background = ['#4a90d9','#e04a3a','#4aaf6c','#f0b840','#a855f7','#ff6b9d'][Math.floor(Math.random()*6)];
+      p.style.background = ['#e8c170','#e04a3a','#4aaf6c','#f0b840','#a855f7','#ff6b9d'][Math.floor(Math.random()*6)];
       p.style.width = (6 + Math.random() * 8) + 'px';
       p.style.height = (6 + Math.random() * 8) + 'px';
       p.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
@@ -150,7 +166,7 @@ function spawnConfetti() {
       p.style.left = x + 'px';
       p.style.top = '-10px';
       p.style.opacity = '1';
-      p.style.background = ['#4a90d9','#e04a3a','#4aaf6c','#f0b840','#a855f7','#ff6b9d'][Math.floor(Math.random()*6)];
+      p.style.background = ['#e8c170','#e04a3a','#4aaf6c','#f0b840','#a855f7','#ff6b9d'][Math.floor(Math.random()*6)];
       p.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
       document.body.appendChild(p);
 
@@ -260,8 +276,8 @@ initAmbientDust();
 // ---------------------------------------------------------------------------
 
 const CARD_SKINS = [
-  { id: 'classic', name: 'Classic', face: '#fff', faceDark: '#f0f0f0', back: '#4a6a9a', backDark: '#2a4a7a' },
-  { id: 'midnight', name: 'Midnight', face: '#2a2a3e', faceDark: '#1a1a2e', back: '#1a1a2e', backDark: '#0a0a1e', pip: '#4a90d9' },
+  { id: 'classic', name: 'Classic', face: '#fdfcf7', faceDark: '#efeadb', back: '#8e1b2a', backDark: '#4a0a12' },
+  { id: 'midnight', name: 'Midnight', face: '#2a2a3e', faceDark: '#1a1a2e', back: '#1a1a2e', backDark: '#0a0a1e', pip: '#e8c170' },
   { id: 'gold', name: 'Gold', face: '#fff8e0', faceDark: '#e8c860', back: '#c09830', backDark: '#8a6a20' },
   { id: 'neon', name: 'Neon', face: '#1a1a2e', faceDark: '#0a0a1e', back: '#0a0a18', backDark: '#050510', pip: '#0ff' },
   { id: 'wood', name: 'Wood', face: '#d4a574', faceDark: '#a0703c', back: '#8a5a2a', backDark: '#5a3a1a' },
@@ -269,8 +285,9 @@ const CARD_SKINS = [
 ];
 
 function getCardSkin() { return localStorage.getItem('spades_card_skin') || 'classic'; }
-function setCardSkin(id) { localStorage.setItem('spades_card_skin', id); }
+function setCardSkin(id) { localStorage.setItem('spades_card_skin', id); applyCardSkinVars(getCardSkinColors()); }
 function getCardSkinColors() { return CARD_SKINS.find(s => s.id === getCardSkin()) || CARD_SKINS[0]; }
+applyCardSkinVars(getCardSkinColors());
 
 
 // ---------------------------------------------------------------------------
@@ -303,12 +320,12 @@ function showTutorial(onClose) {
   function render() {
     const s = steps[step];
     content.innerHTML = `
-      <div style="font-size:1.4rem;font-weight:900;text-align:center;margin-bottom:6px;background:linear-gradient(180deg,#fff 20%,#4a90d9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">${s.title}</div>
+      <div style="font-size:1.4rem;font-weight:900;text-align:center;margin-bottom:6px;background:linear-gradient(180deg,#fff 20%,#e8c170);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">${s.title}</div>
       <div style="font-size:0.75rem;opacity:0.4;text-align:center;margin-bottom:16px;">${_tUI('step')} ${step + 1} ${_tUI('stepOf')} ${steps.length}</div>
       <div style="font-size:0.95rem;line-height:1.7;opacity:0.85;">${s.body}</div>
     `;
     dots.innerHTML = steps.map((_, i) =>
-      `<div style="width:8px;height:8px;border-radius:50%;background:${i === step ? '#4a90d9' : 'rgba(255,255,255,0.15)'};transition:all 0.2s;${i === step ? 'transform:scale(1.3);' : ''}"></div>`
+      `<div style="width:8px;height:8px;border-radius:50%;background:${i === step ? '#e8c170' : 'rgba(255,255,255,0.15)'};transition:all 0.2s;${i === step ? 'transform:scale(1.3);' : ''}"></div>`
     ).join('');
     prevBtn.disabled = step === 0;
     nextBtn.textContent = step === steps.length - 1 ? _tUI('startPlaying') : _tUI('next');

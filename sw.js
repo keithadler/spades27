@@ -4,14 +4,16 @@
  * @copyright 2026 Keith Adler. MIT License.
  */
 
-const CACHE_NAME = 'spades27-v3';
+const CACHE_NAME = 'spades27-v5';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './locales.js',
   './card.js',
+  './card-art.js',
   './player.js',
+  './rules.js',
   './ai.js',
   './audio.js',
   './stats.js',

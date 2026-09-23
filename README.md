@@ -24,7 +24,7 @@ python3 -m http.server 8080
 
 **AI** — 7-factor heuristic scoring engine with 3 difficulty levels. Easy plays like a beginner (leads high, wastes winners). Medium uses full heuristics with weighted randomness (top 3, 5:3:1 odds). Hard plays optimally with partner awareness, nil protection/busting, and bag warfare. Nil protection overrides all other priorities — your partner will always cover your nil. Each opponent gets a random generation (Gen Z, Millennial, Gen X, Boomer) with culturally authentic Spades trash talk. 5 personalities: Aggressive, Defensive, Chaotic, Calculated, Bully.
 
-**Visuals** — Cinematic deal animation with shuffle, 3-2-1 countdown, round announcements over the table felt, card fly-in animations, screen shake on trick wins and spades broken, particle effects, score popups, combo counters, nil bust banners, floating turn arrow, ambient dust motes, time-of-day lighting, haptic feedback, 6 card skins, and victory celebrations that scale with margin (double confetti for blowouts, subtle gold for close games).
+**Visuals** — A casino card table: green felt oval with a wooden rim (5 felt colors), a real printed-deck look drawn in vector art (standard pip layouts, crowned double-headed court cards, an ornamental Ace of Spades, lattice card backs), your hand fanned in an arc with playable cards raised, opponents' hands fanned behind their seat plates, the winning card glowing in the trick, a gold scoreboard, bid chips laid on the felt while your hand stays in view, a round-results scoreboard with a race-to-500 bar, and a victory screen with the four aces. Deal animation, particle effects, screen shake, 6 card skins, and victory celebrations that scale with margin.
 
 **i18n** — English, Spanish, Arabic (full RTL), Chinese. Auto-detects browser language. First-visit language picker. Language selector on menu and in preferences. Full UI translations (100+ keys per language), translated rules and 9-step tutorial, culturally authentic names/cities/trash talk per language.
 
@@ -49,9 +49,9 @@ python3 -m http.server 8080
 2. **Blind Nil?** — If your team is down 100+, you're offered Blind Nil (+200/−200) before seeing your cards
 3. **Bid** — Each player bids how many tricks they'll win (1–13, or Nil for zero). You see previous bids and scores.
 4. **Play** — 13 tricks. Must follow lead suit. Spades are trump. Can't lead spades until broken.
-5. **Score** — Make your bid: `bid × 10` + 1/bag. Miss it: `−bid × 10`. Nil: +100/−100. Blind Nil: +200/−200.
+5. **Score** — Make your bid: `bid × 10` + 1/bag. Miss it: `−bid × 10`. Nil: +100/−100. Blind Nil: +200/−200. Tricks taken by a Nil bidder don't count toward the partner's bid, but they do count as bags.
 6. **Bags** — Every 10 overtricks = −100 penalty. Don't win too many extras.
-7. **Win** — First to target score (default 500) wins. Game also ends if a team drops to −200.
+7. **Win** — First to target score (default 500) wins; if both sides pass it on the same hand, the higher score wins, and a tie for first means one more hand. A side that drops to −200 loses.
 
 ## AI Strategy
 
@@ -89,7 +89,9 @@ Bidding estimates tricks from high spades, spade length, side-suit honours and r
 ├── styles.css       — Styles, animations, responsive, dark/light themes
 ├── locales.js       — i18n: 4 languages, 100+ keys each, phrases, rules
 ├── card.js          — Card class, deck creation, shuffle, sort
+├── card-art.js      — Vector card faces and backs (pip layouts, court cards)
 ├── player.js        — Player model (human + AI), nil/blindNil tracking
+├── rules.js         — The rules as pure functions: trick winner, scoring, game end
 ├── ai.js            — AI engine: 7-factor scoring, 3 difficulties (~560 lines)
 ├── audio.js         — Synthesized SFX + dynamic jazz music engine
 ├── stats.js         — Win/loss records, 13 achievements, XP, head-to-head
@@ -97,7 +99,8 @@ Bidding estimates tricks from high spades, spade length, side-suit honours and r
 ├── game.js          — Main game controller with save/resume (~1800 lines)
 ├── game-fx.js       — Visual effects: deal animation, popups, shake, particles
 ├── sw.js            — Service worker for offline play
-├── test.js          — Automated test suite (48 tests)
+├── test.js          — Automated test suite (82 tests)
+├── sim.js           — Headless simulator: thousands of AI games, rule checks, table stats
 ├── manifest.json    — PWA manifest
 ├── CONTRIBUTING.md  — Contribution guidelines
 ├── LICENSE          — MIT License
@@ -111,18 +114,42 @@ Bidding estimates tricks from high spades, spade length, side-suit honours and r
 - **Persistence** — localStorage for stats, achievements, settings, save games
 - **Offline** — Service worker caches all assets for offline play, refreshing them in the background
 - **Accessibility** — ARIA roles, labels, live regions, keyboard navigation, 4-color colorblind deck
-- **Avatars** — DiceBear Open Peeps (CC BY 4.0), with a local SVG fallback when offline
+- **Avatars** — DiceBear Avataaars (Pablo Stanley's Avataaars, free for personal and commercial use), with a local SVG fallback when offline
 - **Typography** — System font stack (no webfont download)
 
 ## Running Tests
 
 ```bash
 node test.js
-# 48 tests covering: deck, cards, shuffle, sort, player rules,
-# nil/blindNil properties, AI bidding, AI play, trick resolution
+# 82 tests covering: deck, cards, shuffle, sort, player rules,
+# nil/blindNil properties, AI bidding, AI play, trick resolution,
+# partnership + cutthroat scoring, bag penalties, game end and ties
+
+node sim.js 2000 hard teams
+# Plays 2000 full AI games, checks every rule on every trick, and reports
+# how the table plays (bids, sets, nils, bags, hands per game)
 ```
 
 ## Changelog
+
+### v4 — September 2026
+- New look: a felt card table with a wooden rim in a dark room, gold-and-charcoal interface, serif gold logo
+- Real card art in vector graphics: standard pip layouts, crowned court cards, ornamental Ace of Spades, patterned backs; crisp at any size, and card skins and the colorblind deck still apply
+- Your hand is a fanned arc of full-size cards; playable cards rise, others dim. Opponents sit at seat plates with their hands fanned behind them and a tricks/bid chip; whoever's turn it is glows
+- Bidding happens on the table with poker-chip buttons while your real hand stays visible
+- Redesigned round results (per-team scoreboard, points for the hand, race-to-target bars), menu (four-ace hero, two-column layout on desktop) and victory/defeat screen
+- Phone layout: smaller cards that always fit, compact seats
+
+### v3.2 — September 2026
+- Rules live in one place (`rules.js`); the game, the AI and the tests all use it
+- Ties for first no longer end the game (the human used to be handed the loss) — play another hand, as at a real table
+- Round results showed "Made" for a team whose busted Nil partner's tricks were propping up the count, while the score correctly said Set; results now come from the same calculation as the score, and show each hand's points and bag penalties
+- Cutthroat: a busted Nil's tricks count as bags, same as in partnership
+- The game refuses an illegal card (out of turn, not following suit, leading unbroken spades) no matter how it was played
+- AI bidding calibrated against 30,000 simulated hands: the old estimate ran ~0.6 tricks low per player, so the table bid ~10 of 13 and was set 2.5% of the time. Now ~12 of 13 with sets ~13%, like a real table
+- AI can bid 10+ on a monster hand (was capped at 9); Medium bids Nil too; Nil in cutthroat needs a weaker hand since nobody covers you
+- AI opponents and partners go Blind Nil when their team is down 100+, more often the further behind they are
+- New `sim.js` simulator: 100,000+ hands played with zero rule violations
 
 ### v3.1 — September 2026
 - Partnership fix: an AI now keeps taking tricks until the TEAM bid is made, instead of ducking as soon as its own bid was in and leaving its partner to carry the hand
@@ -153,7 +180,7 @@ MIT — see [LICENSE](LICENSE).
 
 ## Attribution
 
-- Avatars by [DiceBear](https://dicebear.com) — CC BY 4.0
+- Avatars by [DiceBear](https://dicebear.com), based on [Avataaars](https://avataaars.com) by Pablo Stanley
 
 ---
 Made by Keith Adler

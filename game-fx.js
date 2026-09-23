@@ -11,6 +11,18 @@
 
 Object.assign(Game.prototype, {
 
+  /** Current card width in px: the --cw token (a clamp()), resolved by layout. */
+  _cardWidth() {
+    const gs = document.getElementById('game-screen');
+    if (!gs) return 80;
+    if (!this._cwProbe) {
+      this._cwProbe = document.createElement('div');
+      this._cwProbe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;height:0;width:var(--cw)';
+      gs.appendChild(this._cwProbe);
+    }
+    return this._cwProbe.offsetWidth || 80;
+  },
+
   // =========================================================================
   // DEAL ANIMATION — Cards fly from center pile to each player
   // =========================================================================
@@ -24,25 +36,23 @@ Object.assign(Game.prototype, {
     const cx = window.innerWidth / 2;
     const cy = window.innerHeight / 2;
     const isSmall = window.innerWidth < 500;
-    const cardW = isSmall ? 36 : 52;
-    const cardH = isSmall ? 52 : 76;
+    const cardW = this._cardWidth() * 0.8;
+    const cardH = cardW * 1.4;
     const pileEls = [];
     const scatter = isSmall ? 0.5 : 1;
+    const back = cardBackSVG();
 
     // Phase 1: Show 52 cards in a messy pile at center
     for (let i = 0; i < 52; i++) {
       const el = document.createElement('div');
+      el.className = 'fly-card';
       el.style.cssText = `
         position:fixed; z-index:${55 + i}; pointer-events:none;
-        width:${cardW}px; height:${cardH}px; border-radius:6px;
-        background:linear-gradient(160deg, #4a6a9a, #2a4a7a);
-        border:1.5px solid rgba(100,140,200,0.4);
-        box-shadow:0 2px 6px rgba(0,0,0,0.4);
+        width:${cardW}px; height:${cardH}px;
+        filter:drop-shadow(0 2px 4px rgba(0,0,0,0.45));
         transition:all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-        display:flex;align-items:center;justify-content:center;
-        font-size:${isSmall ? '10px' : '14px'};color:rgba(255,255,255,0.2);
       `;
-      el.textContent = '♠';
+      el.innerHTML = back;
       const ox = (Math.random() - 0.5) * 120 * scatter;
       const oy = (Math.random() - 0.5) * 80 * scatter;
       const rot = (Math.random() - 0.5) * 90;
@@ -119,10 +129,10 @@ Object.assign(Game.prototype, {
     el.innerHTML = `
       <div style="text-align:center;animation:announceIn 0.5s ease-out forwards;">
         <div style="font-size:1.2rem;font-weight:700;letter-spacing:12px;color:rgba(255,255,255,0.5);text-transform:uppercase;text-shadow:0 2px 8px rgba(0,0,0,0.6);opacity:0;animation:raSlideDown 0.5s ease-out 0.1s forwards;">${this._t('round')}</div>
-        <div style="font-size:8rem;font-weight:900;line-height:1;background:linear-gradient(180deg,#fff 10%,#4a90d9 40%,#2a60a0 70%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 40px rgba(74,144,217,0.5)) drop-shadow(0 4px 12px rgba(0,0,0,0.8));opacity:0;animation:raNumberPop 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.3s forwards;">${this._roundNum}</div>
-        <div style="width:120px;height:2px;margin:12px auto 20px;background:linear-gradient(90deg,transparent,#4a90d9,transparent);opacity:0;animation:raFadeIn 0.4s ease-out 0.7s forwards;"></div>
+        <div style="font-size:8rem;font-weight:900;line-height:1;background:linear-gradient(180deg,#fff 10%,#e8c170 40%,#b8862e 70%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 40px rgba(232,193,112,0.5)) drop-shadow(0 4px 12px rgba(0,0,0,0.8));opacity:0;animation:raNumberPop 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.3s forwards;">${this._roundNum}</div>
+        <div style="width:120px;height:2px;margin:12px auto 20px;background:linear-gradient(90deg,transparent,#e8c170,transparent);opacity:0;animation:raFadeIn 0.4s ease-out 0.7s forwards;"></div>
         <div style="display:flex;align-items:center;justify-content:center;gap:16px;opacity:0;animation:raSlideUp 0.5s ease-out 0.8s forwards;">
-          <img src="${this.players[this.dealer].avatar}" style="width:56px;height:56px;border-radius:50%;border:3px solid rgba(74,144,217,0.5);box-shadow:0 4px 16px rgba(0,0,0,0.5);" alt="">
+          <img src="${this.players[this.dealer].avatar}" style="width:56px;height:56px;border-radius:50%;border:3px solid rgba(232,193,112,0.5);box-shadow:0 4px 16px rgba(0,0,0,0.5);" alt="">
           <div style="text-align:left;text-shadow:0 2px 8px rgba(0,0,0,0.7);">
             <div style="font-size:0.8rem;opacity:0.6;">${this._t("dealer")}</div>
             <div style="font-weight:800;font-size:1.1rem;">${dealerName}</div>
@@ -172,7 +182,7 @@ Object.assign(Game.prototype, {
       }
       const step = steps[i];
       const isGo = i === steps.length - 1;
-      overlay.innerHTML = `<div style="font-size:${isGo ? '5rem' : '10rem'};font-weight:900;color:#fff;text-shadow:0 0 30px #4a90d9,0 0 60px rgba(74,144,217,0.4),0 8px 16px rgba(0,0,0,0.6);animation:countPop 0.8s ease-out forwards;${isGo ? 'letter-spacing:8px;background:linear-gradient(180deg,#fff 20%,#4a90d9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 20px rgba(74,144,217,0.5));' : ''}">${step.text}</div>`;
+      overlay.innerHTML = `<div style="font-size:${isGo ? '5rem' : '10rem'};font-weight:900;color:#fff;text-shadow:0 0 30px #e8c170,0 0 60px rgba(232,193,112,0.4),0 8px 16px rgba(0,0,0,0.6);animation:countPop 0.8s ease-out forwards;${isGo ? 'letter-spacing:8px;background:linear-gradient(180deg,#fff 20%,#e8c170);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 20px rgba(232,193,112,0.5));' : ''}">${step.text}</div>`;
       if (this.sfx) this.sfx._play(step.freq, 0.15, 'sine', 0.12);
       this._haptic(30);
       i++;
@@ -212,25 +222,23 @@ Object.assign(Game.prototype, {
     const endY = trickRect.top + trickRect.height / 2;
 
     // Create flying card
+    const w = this._cardWidth(), h = w * 1.4;
     const el = document.createElement('div');
+    el.className = 'fly-card';
     el.style.cssText = `
       position:fixed; z-index:60; pointer-events:none;
-      width:52px; height:76px; border-radius:8px;
-      background:linear-gradient(160deg, #fff, #f0f0f0);
-      border:2px solid rgba(0,0,0,0.15);
-      box-shadow:0 4px 16px rgba(0,0,0,0.4);
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      font-weight:800; font-size:1.1rem;
-      left:${startX - 26}px; top:${startY - 38}px;
+      width:${w}px; height:${h}px;
+      filter:drop-shadow(0 8px 14px rgba(0,0,0,0.5));
+      left:${startX - w / 2}px; top:${startY - h / 2}px;
       transition:all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      transform:scale(0.5) rotate(${(Math.random() - 0.5) * 20}deg);
+      transform:scale(0.7) rotate(${(Math.random() - 0.5) * 20}deg);
     `;
-    el.innerHTML = `<span style="color:${card.color}">${card.rank}</span><span style="color:${card.color}">${card.symbol}</span>`;
+    el.innerHTML = cardFaceSVG(card);
     document.body.appendChild(el);
 
     requestAnimationFrame(() => {
-      el.style.left = (endX - 26) + 'px';
-      el.style.top = (endY - 38) + 'px';
+      el.style.left = (endX - w / 2) + 'px';
+      el.style.top = (endY - h / 2) + 'px';
       el.style.transform = 'scale(1) rotate(0deg)';
     });
 
@@ -251,7 +259,7 @@ Object.assign(Game.prototype, {
       position:fixed; pointer-events:none; z-index:50;
       font-size:3.5rem; font-weight:900; letter-spacing:3px;
       color:${color || '#fff'};
-      text-shadow:0 0 15px ${color || '#4a90d9'}, 0 0 30px ${color || '#4a90d9'}, 0 6px 12px rgba(0,0,0,0.7);
+      text-shadow:0 0 15px ${color || '#e8c170'}, 0 0 30px ${color || '#e8c170'}, 0 6px 12px rgba(0,0,0,0.7);
       left:${x || '50%'}; top:${y || '40%'};
       transform:translate(-50%,-50%) scale(0.2);
       animation:scoreBlast 2.5s ease-out forwards;
@@ -490,7 +498,7 @@ Object.assign(Game.prototype, {
     const el = document.createElement('div');
     el.style.cssText = `
       position:fixed; inset:0; pointer-events:none; z-index:49;
-      background:radial-gradient(ellipse at center, transparent 50%, ${type === 'good' ? 'rgba(74,144,217,0.3)' : 'rgba(224,74,58,0.3)'} 100%);
+      background:radial-gradient(ellipse at center, transparent 50%, ${type === 'good' ? 'rgba(232,193,112,0.3)' : 'rgba(224,74,58,0.3)'} 100%);
       animation:vignetteFlash 0.6s ease-out forwards;
     `;
     document.body.appendChild(el);
