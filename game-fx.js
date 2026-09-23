@@ -129,10 +129,10 @@ Object.assign(Game.prototype, {
     el.innerHTML = `
       <div style="text-align:center;animation:announceIn 0.5s ease-out forwards;">
         <div style="font-size:1.2rem;font-weight:700;letter-spacing:12px;color:rgba(255,255,255,0.5);text-transform:uppercase;text-shadow:0 2px 8px rgba(0,0,0,0.6);opacity:0;animation:raSlideDown 0.5s ease-out 0.1s forwards;">${this._t('round')}</div>
-        <div style="font-size:8rem;font-weight:900;line-height:1;background:linear-gradient(180deg,#fff 10%,#e8c170 40%,#b8862e 70%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 40px rgba(232,193,112,0.5)) drop-shadow(0 4px 12px rgba(0,0,0,0.8));opacity:0;animation:raNumberPop 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.3s forwards;">${this._roundNum}</div>
+        <div style="font-family:Georgia,'Times New Roman',serif;font-size:8rem;font-weight:900;line-height:1;background:linear-gradient(180deg,#fff 10%,#e8c170 40%,#b8862e 70%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 40px rgba(232,193,112,0.5)) drop-shadow(0 4px 12px rgba(0,0,0,0.8));opacity:0;animation:raNumberPop 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.3s forwards;">${this._roundNum}</div>
         <div style="width:120px;height:2px;margin:12px auto 20px;background:linear-gradient(90deg,transparent,#e8c170,transparent);opacity:0;animation:raFadeIn 0.4s ease-out 0.7s forwards;"></div>
         <div style="display:flex;align-items:center;justify-content:center;gap:16px;opacity:0;animation:raSlideUp 0.5s ease-out 0.8s forwards;">
-          <img src="${this.players[this.dealer].avatar}" style="width:56px;height:56px;border-radius:50%;border:3px solid rgba(232,193,112,0.5);box-shadow:0 4px 16px rgba(0,0,0,0.5);" alt="">
+          <img src="${this.players[this.dealer].avatar}" style="width:64px;height:64px;object-fit:cover;border-radius:50%;border:3px solid rgba(232,193,112,0.5);box-shadow:0 4px 16px rgba(0,0,0,0.5);" alt="">
           <div style="text-align:left;text-shadow:0 2px 8px rgba(0,0,0,0.7);">
             <div style="font-size:0.8rem;opacity:0.6;">${this._t("dealer")}</div>
             <div style="font-weight:800;font-size:1.1rem;">${dealerName}</div>
@@ -182,7 +182,7 @@ Object.assign(Game.prototype, {
       }
       const step = steps[i];
       const isGo = i === steps.length - 1;
-      overlay.innerHTML = `<div style="font-size:${isGo ? '5rem' : '10rem'};font-weight:900;color:#fff;text-shadow:0 0 30px #e8c170,0 0 60px rgba(232,193,112,0.4),0 8px 16px rgba(0,0,0,0.6);animation:countPop 0.8s ease-out forwards;${isGo ? 'letter-spacing:8px;background:linear-gradient(180deg,#fff 20%,#e8c170);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 20px rgba(232,193,112,0.5));' : ''}">${step.text}</div>`;
+      overlay.innerHTML = `<div class="countdown-num${isGo ? ' go' : ''}">${step.text}</div>`;
       if (this.sfx) this.sfx._play(step.freq, 0.15, 'sine', 0.12);
       this._haptic(30);
       i++;
