@@ -1363,7 +1363,14 @@ class Game {
           if (this._playLock) return;
           this._playCard(player, card);
         };
-        el.addEventListener('click', play);
+        // On touch screens a stray tap shouldn't throw a card away: the first
+        // tap lifts it, a second tap on the same card plays it.
+        const touch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+        el.addEventListener('click', () => {
+          if (!touch || el.classList.contains('selected')) { play(); return; }
+          container.querySelectorAll('.hand-card.selected').forEach(c => c.classList.remove('selected'));
+          el.classList.add('selected');
+        });
         el.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); play(); }
         });
