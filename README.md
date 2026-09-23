@@ -90,6 +90,7 @@ Bidding estimates tricks from high spades, spade length, side-suit honours and r
 ├── locales.js       — i18n: 4 languages, 100+ keys each, phrases, rules
 ├── card.js          — Card class, deck creation, shuffle, sort
 ├── card-art.js      — Vector card faces and backs (pip layouts, court cards)
+├── portraits/       — Painted player portraits (01–16.webp)
 ├── player.js        — Player model (human + AI), nil/blindNil tracking
 ├── rules.js         — The rules as pure functions: trick winner, scoring, game end
 ├── ai.js            — AI engine: 7-factor scoring, 3 difficulties (~560 lines)
@@ -114,7 +115,7 @@ Bidding estimates tricks from high spades, spade length, side-suit honours and r
 - **Persistence** — localStorage for stats, achievements, settings, save games
 - **Offline** — Service worker caches all assets for offline play, refreshing them in the background
 - **Accessibility** — ARIA roles, labels, live regions, keyboard navigation, 4-color colorblind deck
-- **Avatars** — DiceBear Avataaars (Pablo Stanley's Avataaars, free for personal and commercial use), with a local SVG fallback when offline
+- **Portraits** — 16 painted character portraits in `portraits/` (AI-generated for this project), bundled so they work offline
 - **Typography** — System font stack (no webfont download)
 
 ## Running Tests
@@ -139,6 +140,7 @@ node sim.js 2000 hard teams
 - Bidding happens on the table with poker-chip buttons while your real hand stays visible
 - Redesigned round results (per-team scoreboard, points for the hand, race-to-target bars), menu (four-ace hero, two-column layout on desktop) and victory/defeat screen
 - Phone layout: smaller cards that always fit, compact seats
+- Painted character portraits replace the cartoon avatars; bundled locally (offline-ready), and no two players at a table share a face
 
 ### v3.2 — September 2026
 - Rules live in one place (`rules.js`); the game, the AI and the tests all use it
@@ -177,10 +179,6 @@ node sim.js 2000 hard teams
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
-## Attribution
-
-- Avatars by [DiceBear](https://dicebear.com), based on [Avataaars](https://avataaars.com) by Pablo Stanley
 
 ---
 Made by Keith Adler

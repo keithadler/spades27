@@ -125,11 +125,13 @@ body::after {
 .roster-card { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.06); position: relative; min-width: 0; transition: background 0.2s, border-color 0.2s; }
 .roster-card:hover { background: rgba(255,255,255,0.06); }
 .roster-card.human { border-color: rgba(232,193,112,0.45); background: rgba(232,193,112,0.07); }
-.roster-card .roster-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,236,190,0.25); background: rgba(255,255,255,0.08); flex-shrink: 0; }
+.roster-card .roster-avatar { width: 46px; height: 46px; object-fit: cover; object-position: 50% 35%; border-radius: 50%; border: 2px solid rgba(255,236,190,0.25); background: rgba(255,255,255,0.08); flex-shrink: 0; }
 .roster-card .roster-info { flex: 1; min-width: 0; }
 .roster-card .roster-name { font-weight: 800; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff7e6; }
 .roster-card .roster-rank { font-size: 0.66rem; color: rgba(255,236,190,0.55); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .roster-card .roster-record { font-size: 0.6rem; opacity: 0.35; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.roster-card .roster-avatar.pickable { cursor: pointer; transition: transform 0.2s var(--ease-spring), box-shadow 0.2s; }
+.roster-card .roster-avatar.pickable:hover { transform: scale(1.12); box-shadow: 0 0 0 2px var(--gold), 0 0 14px rgba(232,193,112,0.5); }
 .roster-reroll { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; transition: all 0.25s; }
 .roster-reroll:hover { background: rgba(232,193,112,0.25); transform: rotate(180deg) scale(1.1); }
 
@@ -242,7 +244,7 @@ body.colorblind .cf-clubs { fill: #1e7d32; }
 .opponent-hand.left .seat-plate, .opponent-hand.right .seat-plate { flex-direction: column; padding: 8px 12px; border-radius: 18px; gap: 6px; }
 .seat.active .seat-plate { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), 0 0 26px rgba(232,193,112,0.45), 0 8px 22px rgba(0,0,0,0.55); }
 .seat-avatar { position: relative; width: 58px; height: 58px; border-radius: 50%; padding: 3px; background: conic-gradient(var(--team-c), color-mix(in srgb, var(--team-c) 50%, #000), var(--team-c)); flex-shrink: 0; }
-.seat-avatar img { width: 100%; height: 100%; border-radius: 50%; background: #2a2620; display: block; }
+.seat-avatar img { width: 100%; height: 100%; border-radius: 50%; background: #2a2620; display: block; object-fit: cover; object-position: 50% 35%; }
 .seat.partner, .seat.us { --team-c: var(--team-us); } .seat.opp { --team-c: var(--team-them); } .seat.ffa { --team-c: #8a8f9c; }
 .seat.active .seat-avatar::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--gold); animation: seatPulse 1.4s ease-in-out infinite; }
 @keyframes seatPulse { 0%,100% { opacity: 0.9; transform: scale(1); } 50% { opacity: 0.3; transform: scale(1.08); } }
@@ -322,7 +324,7 @@ body.colorblind .cf-clubs { fill: #1e7d32; }
 .rr-team { border-radius: 16px; padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-top: 3px solid var(--team-c); display: flex; flex-direction: column; gap: 10px; }
 .rr-team.us { --team-c: var(--team-us); } .rr-team.them { --team-c: var(--team-them); }
 .rr-team-head { display: flex; align-items: center; gap: 10px; }
-.rr-avatars { display: flex; } .rr-avatars img { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--team-c); background: #2a2620; }
+.rr-avatars { display: flex; } .rr-avatars img { width: 32px; height: 32px; object-fit: cover; border-radius: 50%; border: 2px solid var(--team-c); background: #2a2620; }
 .rr-avatars img + img { margin-left: -10px; }
 .rr-team-name { flex: 1; font-weight: 800; font-size: 0.85rem; color: #fff7e6; }
 .rr-delta { font-size: 1.6rem; font-weight: 900; font-variant-numeric: tabular-nums; }
@@ -330,7 +332,7 @@ body.colorblind .cf-clubs { fill: #1e7d32; }
 .rr-grid { display: grid; grid-template-columns: 1fr auto auto; gap: 4px 14px; align-items: center; font-size: 0.85rem; }
 .rr-h { font-size: 0.55rem; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,236,190,0.4); font-weight: 800; text-align: center; }
 .rr-name { font-weight: 700; color: rgba(255,247,230,0.9); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px; min-width: 0; }
-.rr-name img { width: 26px; height: 26px; border-radius: 50%; }
+.rr-name img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
 .rr-bid { text-align: center; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; font-size: 0.8rem; }
 .rr-tricks { text-align: center; font-weight: 900; font-variant-numeric: tabular-nums; color: rgba(255,255,255,0.6); }
 .rr-tricks.good { color: #8fe0a0; } .rr-tricks.bad { color: #ff8a7a; }

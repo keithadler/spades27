@@ -283,7 +283,6 @@ class Game {
     this.teamMode = modeSetting === 'teams';
     const diffSetting = this._getOption('ai-difficulty') || 'mixed';
     const difficulties = ['easy', 'medium', 'hard'];
-    const humanSeed = getHumanAvatarSeed();
 
     if (rematch && this.players.length === 4) {
       if (this.teamMode) {
@@ -304,10 +303,10 @@ class Game {
     }
 
     if (!this._previewNames) {
-      const picked = pickRandomNames(3);
+      const picked = pickCast(3, [getHumanPortrait()]);
       this._previewNames = picked.map(p => p.name);
       this._previewCities = picked.map(p => p.city);
-      this._previewSeeds = this._previewNames.map((n, i) => n + '-' + i);
+      this._previewPortraits = picked.map(p => p.portrait);
       this._previewDiffs = this._previewNames.map(() => difficulties[Math.floor(Math.random() * 3)]);
       this._previewPersonalities = this._previewNames.map(() => AI_PERSONALITIES[Math.floor(Math.random() * AI_PERSONALITIES.length)]);
       this._previewNames.forEach((n, i) => seedAIRecord(n, this._previewDiffs[i]));
@@ -321,7 +320,7 @@ class Game {
 
     this.players = [];
     const you = new Player(getPlayerName(), true, 0);
-    you.avatar = avatarURL(humanSeed);
+    you.avatar = portraitURL(getHumanPortrait());
     you.team = this.teamMode ? 0 : -1;
     you.score = 0; you.bags = 0;
     this.players.push(you);
@@ -330,7 +329,7 @@ class Game {
       const p = new Player(this._previewNames[i], false, i + 1);
       p.ai = new AI(resolvedDiffs[i]);
       p.team = this.teamMode ? (i === 1 ? 0 : 1) : -1; // index 0&2 = team 0, 1&3 = team 1
-      p.avatar = avatarURL(this._previewSeeds[i]);
+      p.avatar = portraitURL(this._previewPortraits[i]);
       p.personality = this._previewPersonalities[i];
       p.generation = PHRASE_GENS[Math.floor(Math.random() * PHRASE_GENS.length)];
       p.city = this._previewCities[i];
@@ -1793,14 +1792,13 @@ class Game {
   _updateRoster() {
     const roster = document.getElementById('player-roster');
     if (!roster) return;
-    const humanSeed = getHumanAvatarSeed();
     const difficulties = ['easy','medium','hard'];
     const mode = this._getOption('game-mode') || 'teams';
     if (!this._previewNames) {
-      const picked = pickRandomNames(3);
+      const picked = pickCast(3, [getHumanPortrait()]);
       this._previewNames = picked.map(p => p.name);
       this._previewCities = picked.map(p => p.city);
-      this._previewSeeds = this._previewNames.map((n,i) => n+'-'+i);
+      this._previewPortraits = picked.map(p => p.portrait);
       this._previewDiffs = this._previewNames.map(() => difficulties[Math.floor(Math.random()*3)]);
       this._previewPersonalities = this._previewNames.map(() => AI_PERSONALITIES[Math.floor(Math.random()*AI_PERSONALITIES.length)]);
       this._previewNames.forEach((n,i) => seedAIRecord(n, this._previewDiffs[i]));
@@ -1810,10 +1808,10 @@ class Game {
       ? ['You', 'Opponent', 'Partner', 'Opponent']
       : ['You', 'Rival', 'Rival', 'Rival'];
     const players = [
-      { name: pName, avatar: avatarURL(humanSeed), isHuman: true, record: getRecord(pName), rank: getRank(pName), team: teamLabels[0] },
-      { name: this._previewNames[0], avatar: avatarURL(this._previewSeeds[0]), record: getRecord(this._previewNames[0]), rank: getRank(this._previewNames[0]), team: teamLabels[1], personality: this._previewPersonalities[0], h2h: getHeadToHead(this._previewNames[0]) },
-      { name: this._previewNames[1], avatar: avatarURL(this._previewSeeds[1]), record: getRecord(this._previewNames[1]), rank: getRank(this._previewNames[1]), team: teamLabels[2], personality: this._previewPersonalities[1], h2h: getHeadToHead(this._previewNames[1]) },
-      { name: this._previewNames[2], avatar: avatarURL(this._previewSeeds[2]), record: getRecord(this._previewNames[2]), rank: getRank(this._previewNames[2]), team: teamLabels[3], personality: this._previewPersonalities[2], h2h: getHeadToHead(this._previewNames[2]) },
+      { name: pName, avatar: portraitURL(getHumanPortrait()), isHuman: true, record: getRecord(pName), rank: getRank(pName), team: teamLabels[0] },
+      { name: this._previewNames[0], avatar: portraitURL(this._previewPortraits[0]), record: getRecord(this._previewNames[0]), rank: getRank(this._previewNames[0]), team: teamLabels[1], personality: this._previewPersonalities[0], h2h: getHeadToHead(this._previewNames[0]) },
+      { name: this._previewNames[1], avatar: portraitURL(this._previewPortraits[1]), record: getRecord(this._previewNames[1]), rank: getRank(this._previewNames[1]), team: teamLabels[2], personality: this._previewPersonalities[1], h2h: getHeadToHead(this._previewNames[1]) },
+      { name: this._previewNames[2], avatar: portraitURL(this._previewPortraits[2]), record: getRecord(this._previewNames[2]), rank: getRank(this._previewNames[2]), team: teamLabels[3], personality: this._previewPersonalities[2], h2h: getHeadToHead(this._previewNames[2]) },
     ];
     roster.innerHTML = `<div class="roster-title">${this._t('players')}</div>`;
     players.forEach((p, pi) => {
@@ -1821,17 +1819,34 @@ class Game {
       card.className = 'roster-card' + (p.isHuman ? ' human' : '');
       const badge = p.team === 'Partner' ? ' 🤝' : (p.team === 'Opponent' || p.team === 'Rival') ? ' ⚔️' : '';
       card.innerHTML = `<img class="roster-avatar" src="${p.avatar}" alt=""><div class="roster-info"><div class="roster-name">${escHTML(p.name)}${badge}</div><div class="roster-rank">${escHTML(p.rank)}${p.personality ? ' ' + p.personality.icon : ''}</div><div class="roster-record">${p.record.wins}W - ${p.record.losses}L${p.h2h ? ' · vs you: ' + p.h2h.w + 'W-' + p.h2h.l + 'L' : ''}</div></div>`;
+      if (p.isHuman) {
+        // Click your portrait to try the next one; whoever at the table had it
+        // gets swapped for someone new, so faces never repeat.
+        const img = card.querySelector('.roster-avatar');
+        img.classList.add('pickable');
+        img.title = this._t('changePortrait');
+        img.addEventListener('click', () => {
+          setHumanPortrait(getHumanPortrait() + 1);
+          const clash = this._previewPortraits.indexOf(getHumanPortrait());
+          if (clash >= 0) {
+            const np = pickCast(1, [getHumanPortrait(), ...this._previewPortraits])[0];
+            this._previewNames[clash] = np.name; this._previewCities[clash] = np.city;
+            this._previewPortraits[clash] = np.portrait;
+            seedAIRecord(np.name, this._previewDiffs[clash]);
+          }
+          this._updateRoster();
+        });
+      }
       if (!p.isHuman) {
         const btn = document.createElement('button');
         btn.className = 'roster-reroll'; btn.textContent = '🎲'; btn.title = this._t('rerollOpponent');
         const idx = pi - 1;
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          // Avoid duplicating an opponent already at the table
-          const taken = this._previewNames.filter((_, i2) => i2 !== idx);
-          const np = pickRandomNames(8).find(c => !taken.includes(c.name)) || pickRandomNames(1)[0];
+          // A cast member who isn't already at the table (or the one leaving)
+          const np = pickCast(1, [getHumanPortrait(), ...this._previewPortraits])[0];
           this._previewNames[idx] = np.name; this._previewCities[idx] = np.city;
-          this._previewSeeds[idx] = np.name + '-' + idx + '-' + Date.now();
+          this._previewPortraits[idx] = np.portrait;
           this._previewPersonalities[idx] = AI_PERSONALITIES[Math.floor(Math.random()*AI_PERSONALITIES.length)];
           seedAIRecord(np.name, this._previewDiffs[idx]);
           this._updateRoster();

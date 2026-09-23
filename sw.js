@@ -4,7 +4,7 @@
  * @copyright 2026 Keith Adler. MIT License.
  */
 
-const CACHE_NAME = 'spades27-v5';
+const CACHE_NAME = 'spades27-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -21,6 +21,22 @@ const ASSETS = [
   './game.js',
   './game-fx.js',
   './manifest.json',
+  './portraits/01.webp',
+  './portraits/02.webp',
+  './portraits/03.webp',
+  './portraits/04.webp',
+  './portraits/05.webp',
+  './portraits/06.webp',
+  './portraits/07.webp',
+  './portraits/08.webp',
+  './portraits/09.webp',
+  './portraits/10.webp',
+  './portraits/11.webp',
+  './portraits/12.webp',
+  './portraits/13.webp',
+  './portraits/14.webp',
+  './portraits/15.webp',
+  './portraits/16.webp',
 ];
 
 self.addEventListener('install', (e) => {

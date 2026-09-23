@@ -4,25 +4,48 @@
  * @copyright 2026 Keith Adler. MIT License.
  */
 
-// Character portraits: DiceBear "Avataaars", held to a table-appropriate
-// look (smart clothes, friendly faces, natural skin and hair colors, no
-// novelty hats) on jewel-tone backgrounds that sit well against the felt.
-const AVATAR_OPTIONS = [
-  'mouth=smile,default,twinkle',
-  'eyes=default,happy,wink,squint',
-  'eyebrows=default,defaultNatural,raisedExcitedNatural,upDownNatural',
-  'clothing=blazerAndShirt,blazerAndSweater,collarAndSweater,shirtVNeck',
-  'clothesColor=262e33,3c4f5c,25557c,5199e4,929598,e6e6e6,65c9ff,ff5c5c',
-  'top=shortFlat,shortRound,shortWaved,shortCurly,theCaesar,theCaesarAndSidePart,sides,dreads01,frizzle,shaggy,bob,bun,curly,curvy,straight01,straight02,straightAndStrand,longButNotTooLong,miaWallace,bigHair,fro,dreads',
-  'hairColor=2c1b18,4a312c,724133,a55728,b58143,c93305,e8e1e1,d6b370',
-  'skinColor=614335,ae5d29,d08b5b,edb98a',
-  'accessoriesProbability=15', 'accessories=prescription01,prescription02,round',
-  'facialHairProbability=0',
-  'backgroundType=gradientLinear', 'backgroundColor=1f4d3a,2b3f6b,5a2336,4a2f6b,6b4a1f,1f4f5a',
-  'scale=118', 'translateY=6',
-].join('&');
-function avatarURL(seed) {
-  return `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(seed)}&${AVATAR_OPTIONS}`;
+// The cast: 16 characters, each a painted portrait shipped with the game
+// (portraits/01.webp …, so they work offline) and a name per language drawn
+// from that language's name list, chosen to suit the portrait.
+const CAST = [
+  { en: 'Amara',  es: 'Valentina', ar: 'نورة',  zh: '美玲' },
+  { en: 'James',  es: 'Alejandro', ar: 'خالد',  zh: '建国' },
+  { en: 'Mei',    es: 'Camila',    ar: 'ليلى',  zh: '雅琴' },
+  { en: 'Kofi',   es: 'Roberto',   ar: 'حسن',   zh: '志强' },
+  { en: 'Vera',   es: 'Mercedes',  ar: 'عبير',  zh: '秀英' },
+  { en: 'Mateo',  es: 'Santiago',  ar: 'عمر',   zh: '浩然' },
+  { en: 'Priya',  es: 'Isabella',  ar: 'مريم',  zh: '丽华' },
+  { en: 'Leo',    es: 'Daniel',    ar: 'علي',   zh: '伟明' },
+  { en: 'Idris',  es: 'Andrés',    ar: 'طارق',  zh: '俊杰' },
+  { en: 'Ingrid', es: 'Lucía',     ar: 'سارة',  zh: '思琪' },
+  { en: 'Hugo',   es: 'Enrique',   ar: 'سالم',  zh: '德明' },
+  { en: 'Zara',   es: 'Gabriela',  ar: 'ريم',   zh: '婷婷' },
+  { en: 'Tariq',  es: 'Rafael',    ar: 'فيصل',  zh: '天宇' },
+  { en: 'Sofia',  es: 'Carmen',    ar: 'دانة',  zh: '雪梅' },
+  { en: 'Felix',  es: 'Arturo',    ar: 'سعد',   zh: '福生' },
+  { en: 'Nico',   es: 'Tomás',     ar: 'يوسف',  zh: '子轩' },
+];
+function portraitURL(i) { return `portraits/${String(i + 1).padStart(2, '0')}.webp`; }
+function castName(i) {
+  const lang = localStorage.getItem('spades_lang') || detectBrowserLang();
+  return CAST[i][lang] || CAST[i].en;
+}
+/** Your own portrait (a cast index); pick one at random the first time. */
+function getHumanPortrait() {
+  let i = parseInt(localStorage.getItem('spades_human_portrait'), 10);
+  if (!(i >= 0 && i < CAST.length)) { i = Math.floor(Math.random() * CAST.length); localStorage.setItem('spades_human_portrait', i); }
+  return i;
+}
+function setHumanPortrait(i) { localStorage.setItem('spades_human_portrait', ((i % CAST.length) + CAST.length) % CAST.length); }
+/**
+ * Seat `count` cast members nobody at the table already is (`exclude` holds
+ * portrait indices), each with a city from the current language.
+ */
+function pickCast(count, exclude) {
+  const lang = localStorage.getItem('spades_lang') || detectBrowserLang();
+  const cities = [...(getLocale(lang).cities || LOCALES.en.cities)].sort(() => Math.random() - 0.5);
+  const free = CAST.map((_, i) => i).filter(i => !(exclude || []).includes(i)).sort(() => Math.random() - 0.5);
+  return free.slice(0, count).map((i, k) => ({ portrait: i, name: castName(i), city: cities[k % cities.length] }));
 }
 // Fallback SVG if avatar fails to load
 const FALLBACK_AVATAR = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="32" fill="#2a3f5c"/><text x="32" y="42" text-anchor="middle" fill="#e8c170" font-size="30">♠</text></svg>');
@@ -66,19 +89,6 @@ function getPhrase(player, category) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-function getHumanAvatarSeed() {
-  let seed = localStorage.getItem('spades_human_avatar');
-  if (!seed) { seed = 'human-' + Math.random().toString(36).slice(2, 10); localStorage.setItem('spades_human_avatar', seed); }
-  return seed;
-}
-
-function pickRandomNames(count) {
-  const lang = localStorage.getItem('spades_lang') || detectBrowserLang();
-  const loc = getLocale(lang);
-  const names = [...(loc.names || LOCALES.en.names)].sort(() => Math.random() - 0.5);
-  const cities = [...(loc.cities || LOCALES.en.cities)].sort(() => Math.random() - 0.5);
-  return names.slice(0, count).map((name, i) => ({ name, city: cities[i % cities.length] }));
-}
 
 const TABLE_THEMES = [
   { id: 'random', name: 'Random', felt: '', dark: '' },
