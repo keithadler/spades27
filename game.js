@@ -1817,8 +1817,10 @@ class Game {
     players.forEach((p, pi) => {
       const card = document.createElement('div');
       card.className = 'roster-card' + (p.isHuman ? ' human' : '');
-      const badge = p.team === 'Partner' ? ' 🤝' : (p.team === 'Opponent' || p.team === 'Rival') ? ' ⚔️' : '';
-      card.innerHTML = `<img class="roster-avatar" src="${p.avatar}" alt=""><div class="roster-info"><div class="roster-name">${escHTML(p.name)}${badge}</div><div class="roster-rank">${escHTML(p.rank)}${p.personality ? ' ' + p.personality.icon : ''}</div><div class="roster-record">${p.record.wins}W - ${p.record.losses}L${p.h2h ? ' · vs you: ' + p.h2h.w + 'W-' + p.h2h.l + 'L' : ''}</div></div>`;
+      const role = { Partner: 'partner', Opponent: 'opp', Rival: 'rival' }[p.team];
+      const roleTag = role ? `<span class="roster-role ${role}">${escHTML(this._t(role === 'partner' ? 'rolePartner' : role === 'opp' ? 'roleOpponent' : 'roleRival'))}</span>` : '';
+      if (role) card.classList.add('role-' + role);
+      card.innerHTML = `<img class="roster-avatar" src="${p.avatar}" alt=""><div class="roster-info"><div class="roster-name">${escHTML(p.name)}</div>${roleTag}<div class="roster-rank">${escHTML(p.rank)}</div><div class="roster-record">${p.record.wins}W - ${p.record.losses}L${p.h2h ? ' · vs you: ' + p.h2h.w + 'W-' + p.h2h.l + 'L' : ''}</div></div>`;
       if (p.isHuman) {
         // Click your portrait to try the next one; whoever at the table had it
         // gets swapped for someone new, so faces never repeat.

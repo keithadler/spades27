@@ -132,6 +132,13 @@ body::after {
 .roster-card .roster-record { font-size: 0.6rem; opacity: 0.35; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .roster-card .roster-avatar.pickable { cursor: pointer; transition: transform 0.2s var(--ease-spring), box-shadow 0.2s; }
 .roster-card .roster-avatar.pickable:hover { transform: scale(1.12); box-shadow: 0 0 0 2px var(--gold), 0 0 14px rgba(232,193,112,0.5); }
+.roster-role { display: inline-block; margin: 1px 0 2px; padding: 1px 7px; border-radius: 999px; font-size: 0.55rem; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: #fff; }
+.roster-role.partner { background: color-mix(in srgb, var(--team-us) 70%, #000); }
+.roster-role.opp { background: color-mix(in srgb, var(--team-them) 75%, #000); }
+.roster-role.rival { background: #5a5a66; }
+.roster-card.role-partner .roster-avatar { border-color: var(--team-us); }
+.roster-card.role-opp .roster-avatar { border-color: var(--team-them); }
+.roster-card.human .roster-avatar { border-color: var(--gold); }
 .roster-reroll { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; transition: all 0.25s; }
 .roster-reroll:hover { background: rgba(232,193,112,0.25); transform: rotate(180deg) scale(1.1); }
 
