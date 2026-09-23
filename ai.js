@@ -227,6 +227,16 @@
 // (hard AI, partnership, 30k hands): actual ≈ estimate + 0.6.
 const ESTIMATE_BIAS = 0.4;
 
+/**
+ * Turn a hand's trick estimate into the tricks to bid. Standard deck: the
+ * estimate runs ~0.6 low, and we bid a shade under that. Jokers & Deuces
+ * (measured the same way): actual ≈ 0.91 × estimate + 0.56, so strong hands
+ * are worth a little less than they look; same safety margin.
+ */
+function bidFromEstimate(tricks, jokers) {
+  return Math.round(jokers ? 0.91 * tricks + 0.36 : tricks + ESTIMATE_BIAS);
+}
+
 class AI {
   constructor(difficulty) {
     this.difficulty = difficulty;
@@ -242,24 +252,25 @@ class AI {
     // ----- EASY: Simple heuristic + randomness -----
     if (this.difficulty === 'easy') {
       const aces = hand.filter(c => c.value === 14).length;
-      const highSpades = spades.filter(c => c.value >= 12).length;
+      const jk = ctx && ctx.jokers; // 16 trumps: only the top ones are sure winners
+      const highSpades = spades.filter(c => c.value >= (jk ? 15 : 12)).length;
       const kings = hand.filter(c => c.value === 13 && !c.isSpade).length;
       let bid = aces + highSpades + Math.floor(kings * 0.5);
       // Beginners still know a long spade suit wins tricks
-      bid += Math.max(0, spades.length - 3);
+      bid += Math.max(0, spades.length - (jk ? 4 : 3));
       bid += Math.floor(Math.random() * 2);
-      return Math.max(1, Math.min(bid, 7));
+      return Math.max(1, (ctx && ctx.minBid) || 1, Math.min(bid, 7));
     }
 
     // ----- MEDIUM / HARD: Balanced trick counting -----
-    const tricks = this.estimateTricks(hand);
+    const tricks = this.estimateTricks(hand, ctx && ctx.jokers);
     const spadeCount = spades.length;
 
     // The card counts above are a floor: measured over 30,000 simulated
     // hands, a player takes ~0.6 more tricks than they credit (a guarded
     // queen, a long side suit, partner setting up a king). Bid what the
     // hand is actually worth, rounded to the nearest trick.
-    let bid = Math.round(tricks + ESTIMATE_BIAS);
+    let bid = bidFromEstimate(tricks, ctx && ctx.jokers);
 
     // Medium: occasionally shades the bid down by one
     if (this.difficulty === 'medium' && Math.random() > 0.8) bid -= 1;
@@ -277,7 +288,10 @@ class AI {
     // (+100) than as a bid of 1. Never when partner already bid Nil. In
     // cutthroat nobody covers you, so the hand has to be weaker still.
     const ffa = ctx && ctx.teamMode === false;
-    if (this.difficulty !== 'easy' && partnerBid !== 0 && tricks <= (ffa ? 0.6 : 1.2)) {
+    // House rules can switch Nil off, or forbid it when the team needs a
+    // minimum bid (the "board") that partner hasn't covered.
+    const nilOk = !ctx || ctx.allowNil !== false;
+    if (nilOk && this.difficulty !== 'easy' && partnerBid !== 0 && tricks <= (ffa ? 0.6 : 1.2)) {
       const noAces = !hand.some(c => c.value === 14);
       const safeSpades = spadeCount <= 3 && spades.every(c => c.value <= (ffa ? 7 : 9));
       const kings = hand.filter(c => c.value === 13).length;
@@ -286,7 +300,7 @@ class AI {
       if (noAces && safeSpades && fewKings && Math.random() < willing) return 0;
     }
 
-    return Math.max(1, Math.min(bid, 13));
+    return Math.max(1, (ctx && ctx.minBid) || 1, Math.min(bid, 13));
   }
 
   /**
@@ -297,7 +311,7 @@ class AI {
    * look — way behind, or the opponents about to close the game out.
    */
   chooseBlindNil(partnerBid, ctx) {
-    if (this.difficulty === 'easy' || !ctx || !ctx.teamMode) return false;
+    if (this.difficulty === 'easy' || !ctx || !ctx.teamMode || ctx.allowBlindNil === false) return false;
     if (partnerBid === 0) return false;
     const deficit = ctx.oppScore - ctx.myScore;
     if (deficit < 100) return false;
@@ -308,25 +322,37 @@ class AI {
   }
 
   /** Expected tricks for a hand, before any bidding adjustments. */
-  estimateTricks(hand) {
+  estimateTricks(hand, jokers) {
     const spades = hand.filter(c => c.isSpade);
     let tricks = 0;
     const hasSpade = (v) => spades.some(c => c.value === v);
     const spadeCount = spades.length;
 
-    // High spade tricks — the top of the trump suit is close to guaranteed
-    if (hasSpade(14)) tricks += 1;
-    if (hasSpade(13)) tricks += hasSpade(14) ? 1 : 0.8;
-    if (hasSpade(12)) tricks += (hasSpade(14) && hasSpade(13)) ? 0.95 : (hasSpade(14) || hasSpade(13)) ? 0.7 : 0.45;
-    if (hasSpade(11)) tricks += spadeCount >= 4 ? 0.6 : 0.3;
-    if (hasSpade(10) && spadeCount >= 5) tricks += 0.3;
+    if (!jokers) {
+      // High spade tricks — the top of the trump suit is close to guaranteed
+      if (hasSpade(14)) tricks += 1;
+      if (hasSpade(13)) tricks += hasSpade(14) ? 1 : 0.8;
+      if (hasSpade(12)) tricks += (hasSpade(14) && hasSpade(13)) ? 0.95 : (hasSpade(14) || hasSpade(13)) ? 0.7 : 0.45;
+      if (hasSpade(11)) tricks += spadeCount >= 4 ? 0.6 : 0.3;
+      if (hasSpade(10) && spadeCount >= 5) tricks += 0.3;
+    } else {
+      // Jokers & Deuces: 16 trumps, topped by Big Joker, Little Joker, 2♦,
+      // 2♠. A trump is as good as the number of higher trumps still out
+      // (higher ones I hold myself don't count against it).
+      const credit = [1, 0.85, 0.65, 0.45, 0.3, 0.2];
+      const top = spades.map(c => 18 - c.value).sort((a, b) => a - b); // 0 = Big Joker
+      top.forEach((pos, mineAbove) => {
+        const out = pos - mineAbove;
+        if (out < credit.length) tricks += credit[out] * (out >= 3 && spadeCount < 4 ? 0.6 : 1);
+      });
+    }
 
     // Low spades win tricks two ways: length (opponents run out of trumps
     // and the small ones win late) and ruffing (voids/singletons in side
     // suits). The same low spade can't do both, so credit the larger of the
     // two and only a fraction of the smaller.
     const lowSpades = spades.filter(c => c.value <= 10).length;
-    const lengthCredit = Math.max(0, spadeCount - 3) * 0.7;
+    const lengthCredit = Math.max(0, spadeCount - (jokers ? 4 : 3)) * 0.7;
     let ruffCredit = 0;
     for (const suit of ['hearts', 'diamonds', 'clubs']) {
       const n = hand.filter(c => c.suit === suit).length;

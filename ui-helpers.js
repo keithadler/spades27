@@ -112,6 +112,14 @@ function applyTableTheme() {
 }
 applyTableTheme();
 
+/** The table's house rules (rules.js DEFAULT_HOUSE_RULES), remembered between games. */
+function getHouseRules() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('spades_house_rules') || '{}') || {}; } catch (e) {}
+  return Object.assign({}, DEFAULT_HOUSE_RULES, saved);
+}
+function setHouseRules(rules) { localStorage.setItem('spades_house_rules', JSON.stringify(rules)); }
+
 const AI_PERSONALITIES = [
   { id: 'aggressive', name: 'aggressive', desc: 'Bids high, plays to win', icon: '🔥', tweaks: {} },
   { id: 'defensive', name: 'defensive', desc: 'Conservative bids, safe play', icon: '🛡️', tweaks: {} },

@@ -10,6 +10,8 @@ const fs = require('fs');
 const GAMES = parseInt(process.argv[2] || '2000');
 const DIFF = process.argv[3] || 'hard';
 const MODE = process.argv[4] || 'teams';
+// House rules: comma list of jokers, board, nonil
+const HR = (process.argv[5] || '').split(',');
 
 const sandbox = { console, Math, document: undefined };
 vm.createContext(sandbox);
@@ -18,8 +20,11 @@ for (const f of ['card.js', 'player.js', 'rules.js', 'ai.js']) {
 }
 
 const code = `
-(function run(GAMES, DIFF, MODE) {
+(function run(GAMES, DIFF, MODE, HR) {
   const teamMode = MODE === 'teams';
+  const rules = Object.assign({}, DEFAULT_HOUSE_RULES, {
+    jokers: HR.includes('jokers'), minTeamBid: HR.includes('board') ? 4 : 0,
+    nil: !HR.includes('nonil'), blindNil: !HR.includes('nonil') });
   const S = { games: 0, hands: 0, violations: [], bidTotal: 0, bidHist: {}, sets: 0, contracts: 0,
     nils: 0, nilMade: 0, blindNils: 0, blindNilMade: 0, bags: 0, bagPenalties: 0, bostons: 0,
     exactMade: 0, handsPerGame: [], ties: 0, overtricks: 0, mercyEnds: 0 };
@@ -40,7 +45,7 @@ const code = `
     while (!gameOutcome(scores(), 500).over && hands < 200) {
       hands++; S.hands++;
       for (const p of players) p.resetRound();
-      const deck = shuffle(createDeck());
+      const deck = shuffle(createDeck(rules.jokers));
       for (let i = 0; i < 52; i++) players[(dealer + 1 + i) % 4].hand.push(deck[i]);
 
       // Bidding, clockwise from the dealer's left
@@ -49,14 +54,18 @@ const code = `
         const partner = players[(p.index + 2) % 4];
         const mine = teamMode ? teams[p.team].score : p.score;
         const theirs = teamMode ? teams[1 - p.team].score : Math.max(...players.filter(q => q !== p).map(q => q.score));
+        const lim = bidLimits(rules, teamMode, teamMode ? partner.bid : -1);
         const ctx = { teamBags: teamMode ? teams[p.team].bags : p.bags, teamMode,
-          myScore: mine, oppScore: theirs, target: 500 };
+          myScore: mine, oppScore: theirs, target: 500, jokers: rules.jokers,
+          minBid: lim.minBid, allowNil: lim.allowNil, allowBlindNil: rules.blindNil && lim.allowNil };
         if (teamMode && p.ai.chooseBlindNil && p.ai.chooseBlindNil(partner.bid, ctx)) {
           p.bid = 0; p.blindNil = true;
         } else {
           p.bid = p.ai.chooseBid(p.hand, teamMode ? partner.bid : -1, ctx);
         }
         if (!(p.bid >= 0 && p.bid <= 13 && Number.isInteger(p.bid))) fail('bad bid ' + p.bid);
+        if (p.bid === 0 && !lim.allowNil) fail('nil bid when not allowed');
+        if (p.bid > 0 && p.bid < lim.minBid) fail('bid ' + p.bid + ' under board minimum ' + lim.minBid);
         S.bidHist[p.bid] = (S.bidHist[p.bid] || 0) + 1;
       }
       S.bidTotal += players.reduce((s, p) => s + p.bid, 0);
@@ -122,7 +131,7 @@ const code = `
 
   const pct = (a, b) => b ? (100 * a / b).toFixed(1) + '%' : '-';
   const sides = teamMode ? 2 : 4;
-  console.log('Mode ' + MODE + ', AI ' + DIFF + ', ' + S.games + ' games, ' + S.hands + ' hands');
+  console.log('Mode ' + MODE + ', AI ' + DIFF + (HR[0] ? ', rules ' + HR.join('+') : '') + ', ' + S.games + ' games, ' + S.hands + ' hands');
   console.log('  Rule violations:          ' + (S.violations.length ? S.violations.join('; ') : 'none'));
   console.log('  Avg table bid (of 13):    ' + (S.bidTotal / S.hands).toFixed(2));
   console.log('  Contracts set:            ' + pct(S.sets, S.contracts));
@@ -137,7 +146,7 @@ const code = `
   console.log('  Tied finishes replayed:   ' + S.ties);
   console.log('  Bid histogram:            ' + JSON.stringify(S.bidHist));
   return S.violations.length;
-})(${GAMES}, '${DIFF}', '${MODE}')`;
+})(${GAMES}, '${DIFF}', '${MODE}', ${JSON.stringify(HR)})`;
 
 const violations = vm.runInContext(code, sandbox);
 process.exit(violations ? 1 : 0);

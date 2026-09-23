@@ -119,6 +119,18 @@ body::after {
 .btn-start.btn-secondary { background: rgba(0,0,0,0.3); color: var(--gold); border: 1.5px solid rgba(232,193,112,0.55); text-shadow: none; box-shadow: 0 10px 24px rgba(0,0,0,0.35); }
 .btn-start.btn-secondary:hover { background: rgba(232,193,112,0.12); box-shadow: 0 12px 28px rgba(0,0,0,0.4), 0 0 20px rgba(232,193,112,0.2); }
 
+/* House rule toggles */
+.rule-toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.rule-toggle { flex: 1 1 auto; padding: 9px 12px; border-radius: 999px; cursor: pointer; font-size: 0.82rem; font-weight: 700; white-space: nowrap; color: rgba(255,245,225,0.55); background: rgba(255,255,255,0.03); border: 1px solid var(--hairline); transition: background 0.2s, color 0.2s, border-color 0.2s; }
+.rule-toggle::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; background: rgba(255,255,255,0.18); vertical-align: 1px; transition: background 0.2s, box-shadow 0.2s; }
+.rule-toggle:hover { color: #fff7e6; border-color: var(--hairline-strong); }
+.rule-toggle.on { color: #fff1d0; border-color: rgba(232,193,112,0.55); background: rgba(232,193,112,0.1); }
+.rule-toggle.on::before { background: var(--gold); box-shadow: 0 0 8px rgba(232,193,112,0.8); }
+body[data-theme="light"] .rule-toggle { color: #7a6a52; background: rgba(255,255,255,0.5); border-color: rgba(90,64,20,0.14); }
+body[data-theme="light"] .rule-toggle.on { color: #2b2116; border-color: rgba(154,110,30,0.55); background: rgba(232,193,112,0.25); }
+.bid-btn:disabled { opacity: 0.25; cursor: not-allowed; transform: none; box-shadow: none; }
+.bid-btn:disabled:hover { background: radial-gradient(circle at 50% 35%, #3a3226, #17130e 70%); color: #fff1d0; }
+
 /* Roster: the four seats, as compact tiles */
 #player-roster { margin: 4px 0 18px; text-align: left; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .roster-title { grid-column: 1 / -1; font-size: 0.62rem; color: rgba(255,236,190,0.5); text-transform: uppercase; letter-spacing: 2.5px; text-align: center; font-weight: 800; }
@@ -235,6 +247,17 @@ body.colorblind .cf-clubs { fill: #1e7d32; }
 .cf-ace-ring { fill: none; stroke: var(--card-black, #15151f); stroke-width: 2.5; opacity: 0.8; }
 .cf-ace-ring.thin { stroke-width: 1; opacity: 0.5; }
 .cf-ace-mark { font: 800 11px/1 system-ui, sans-serif; letter-spacing: 3px; fill: var(--card-black, #15151f); opacity: 0.55; }
+.cf-trump-badge { fill: url(#cf-gold); stroke: #5a3a0a; stroke-width: 2; }
+.cf-trump-badge-suit { fill: #2a1a04; }
+.cf-joker-big { fill: #c42a2a; stroke: #c42a2a; }
+.cf-joker-little { fill: #15151f; stroke: #15151f; }
+.cf-joker-frame { fill: none; stroke-width: 3; }
+.cf-joker-frame.cf-joker-big { fill: rgba(196,42,42,0.08); }
+.cf-joker-frame.cf-joker-little { fill: rgba(21,21,31,0.06); }
+.cf-joker-hat { stroke: #5a3a0a; stroke-width: 2; stroke-linejoin: round; }
+.cf-joker-hat.alt.cf-joker-big { fill: #2d4fa0; } .cf-joker-hat.alt.cf-joker-little { fill: #8a8f9c; }
+.cf-joker-index { font: 800 22px/1 Georgia, 'Times New Roman', serif; stroke: none; }
+.cf-joker-label { font: 900 18px/1 system-ui, sans-serif; letter-spacing: 4px; stroke: none; }
 .cb-border { fill: var(--card-face, #fdfcf7); stroke: rgba(0,0,0,0.35); stroke-width: 1.5; }
 .cb-fill { fill: var(--card-back, #7a1622); }
 .cb-line { stroke: rgba(255,255,255,0.14); }

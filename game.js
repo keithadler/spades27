@@ -35,6 +35,7 @@ class Game {
     this._playLock = false;
     this._trickNum = 0;
     this._gameEpoch = 0;
+    this.rules = getHouseRules();
 
     this._playTimeInterval = setInterval(() => {
       if (!this.gameOver && this.players.length > 0 && document.visibilityState === 'visible') trackPlayTime(60);
@@ -162,6 +163,20 @@ class Game {
     document.getElementById('log-close-btn').addEventListener('click', () => {
       document.getElementById('log-overlay').classList.add('hidden');
     });
+
+    // House rule toggles on the menu (take effect at the next new game)
+    document.querySelectorAll('#house-rules .rule-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const r = getHouseRules(), k = btn.dataset.rule;
+        if (k === 'minTeamBid') r.minTeamBid = r.minTeamBid ? 0 : 4;
+        else r[k] = !r[k];
+        if (k === 'nil' && !r.nil) r.blindNil = false;       // no Blind Nil without Nil
+        if (k === 'blindNil' && r.blindNil) r.nil = true;
+        setHouseRules(r);
+        this._renderHouseRules();
+      });
+    });
+    this._renderHouseRules();
 
     document.getElementById('last-trick-btn').addEventListener('click', () => this._toggleLastTrick());
     document.getElementById('last-trick-pop').addEventListener('click', () => this._hideLastTrick());
@@ -355,6 +370,7 @@ class Game {
     this.gameOver = false; this.gameLog = []; this._roundNum = 0;
     this._wasDown100 = false; this._gameBagsAccrued = 0;
     this.dealer = Math.floor(Math.random() * 4);
+    this.rules = getHouseRules();
 
     this.showScreen('game-screen');
     if (this.music) { this.music.init(); this.music.start(); }
@@ -375,7 +391,7 @@ class Game {
       })),
       teams: this.teams,
       currentPlayer: this.currentPlayer, dealer: this.dealer,
-      targetScore: this.targetScore, teamMode: this.teamMode,
+      targetScore: this.targetScore, teamMode: this.teamMode, rules: this.rules,
       spadesBroken: this.spadesBroken, roundNum: this._roundNum,
       trickNum: this._trickNum, trickLeader: this.trickLeader,
       trick: this.trick.map(t => ({ suit: t.card.suit, rank: t.card.rank, playerIndex: t.playerIndex })),
@@ -405,6 +421,7 @@ class Game {
       this.teams = s.teams;
       this.currentPlayer = s.currentPlayer; this.dealer = s.dealer;
       this.targetScore = s.targetScore; this.teamMode = s.teamMode;
+      this.rules = Object.assign({}, DEFAULT_HOUSE_RULES, s.rules);
       this.spadesBroken = s.spadesBroken; this._roundNum = s.roundNum;
       this._trickNum = s.trickNum; this.trickLeader = s.trickLeader;
       this.trick = s.trick.map(t => ({ card: new Card(t.suit, t.rank), playerIndex: t.playerIndex }));
@@ -447,7 +464,7 @@ class Game {
 
     for (const p of this.players) p.resetRound();
 
-    const deck = shuffle(createDeck());
+    const deck = shuffle(createDeck(this.rules && this.rules.jokers));
     for (let i = 0; i < 52; i++) {
       this.players[i % 4].hand.push(deck[i]);
     }
@@ -483,7 +500,7 @@ class Game {
     for (let i = 1; i <= 4; i++) this._bidOrder.push((this.dealer + i) % 4);
     this._currentBidIdx = 0;
     // Blind nil: only in team mode, only when your team is down 100+
-    const canBlind = this.teamMode && this.teams && this.teams[0].score <= this.teams[1].score - 100;
+    const canBlind = this.teamMode && this.teams && this.rules.blindNil && this.teams[0].score <= this.teams[1].score - 100;
     this._humanCanBlindNil = canBlind;
     this._humanBlindNilAsked = false;
     this._doBid();
@@ -505,7 +522,8 @@ class Game {
 
     if (player.isHuman) {
       // Blind nil: ask BEFORE showing cards, only once
-      if (this._humanCanBlindNil && !this._humanBlindNilAsked) {
+      // (and only if Nil is open to you right now — the board may forbid it)
+      if (this._humanCanBlindNil && !this._humanBlindNilAsked && this._bidLimitsFor(player).allowNil) {
         this._humanBlindNilAsked = true;
         this._askBlindNil(player, (accepted) => {
           if (accepted) {
@@ -535,7 +553,9 @@ class Game {
         const myScore = this.teamMode ? this.teams[player.team].score : (player.score || 0);
         const oppScore = this.teamMode ? this.teams[1 - player.team].score
           : Math.max(...this.players.filter(p => p !== player).map(p => p.score || 0));
-        const ctx = { teamBags, teamMode: this.teamMode, myScore, oppScore, target: this.targetScore };
+        const lim = this._bidLimitsFor(player);
+        const ctx = { teamBags, teamMode: this.teamMode, myScore, oppScore, target: this.targetScore,
+          jokers: this.rules.jokers, minBid: lim.minBid, allowNil: lim.allowNil, allowBlindNil: this.rules.blindNil && lim.allowNil };
         // Blind Nil is called before looking at the cards, so it comes first
         const blind = player.ai.chooseBlindNil(partnerBid, ctx);
         const bid = blind ? 0 : player.ai.chooseBid(player.hand, partnerBid, ctx);
@@ -548,6 +568,24 @@ class Game {
         });
       }, this._speedMs(1200 + Math.random() * 800));
     }
+  }
+
+  _renderHouseRules() {
+    const r = getHouseRules();
+    const labels = { nil: 'hrNil', blindNil: 'hrBlindNil', minTeamBid: 'hrBoard', jokers: 'hrJokers' };
+    document.querySelectorAll('#house-rules .rule-toggle').forEach(btn => {
+      const k = btn.dataset.rule;
+      const on = k === 'minTeamBid' ? !!r.minTeamBid : !!r[k];
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', on);
+      btn.textContent = this._t(labels[k]);
+    });
+  }
+
+  /** Bid limits for `player` under the house rules (board minimum, Nil allowed). */
+  _bidLimitsFor(player) {
+    const partnerBid = this.teamMode ? this.players[(player.index + 2) % 4].bid : -1;
+    return bidLimits(this.rules, this.teamMode, partnerBid);
   }
 
   _askBlindNil(player, callback) {
@@ -625,19 +663,24 @@ class Game {
       }
       html += `</span></div>`;
     }
+    // House rules: the board may set a minimum, and Nil may be off
+    const lim = this._bidLimitsFor(player);
     // A suggested bid from the same hand evaluation the Hard AI uses
-    const suggested = Math.max(1, Math.min(13, Math.round(new AI('hard').estimateTricks(player.hand) + ESTIMATE_BIAS)));
-    html += `</div><div class="bid-suggest">${escHTML(this._t('suggested'))}: <b>${suggested}</b></div><div class="bid-buttons">`;
-    html += `<button class="bid-btn bid-nil" data-bid="0">${this._t('nil')}</button>`;
+    const est = bidFromEstimate(new AI('hard').estimateTricks(player.hand, this.rules.jokers), this.rules.jokers);
+    const suggested = Math.max(lim.minBid, Math.min(13, est));
+    const boardBinds = lim.minBid > 1 || (this.rules.nil && !lim.allowNil);
+    const boardNote = boardBinds ? ` · ${escHTML(this._t('boardNote').replace('{n}', this.rules.minTeamBid))}` : '';
+    html += `</div><div class="bid-suggest">${escHTML(this._t('suggested'))}: <b>${suggested}</b>${boardNote}</div><div class="bid-buttons">`;
+    if (this.rules.nil) html += `<button class="bid-btn bid-nil" data-bid="0"${lim.allowNil ? '' : ' disabled'}>${this._t('nil')}</button>`;
     for (let i = 1; i <= 13; i++) {
-      html += `<button class="bid-btn${i === suggested ? ' suggested' : ''}" data-bid="${i}">${i}</button>`;
+      html += `<button class="bid-btn${i === suggested ? ' suggested' : ''}" data-bid="${i}"${i < lim.minBid ? ' disabled' : ''}>${i}</button>`;
     }
     html += `</div></div>`;
     overlay.innerHTML = html;
     let bidPlaced = false;
     overlay.querySelectorAll('.bid-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        if (bidPlaced) return;
+        if (bidPlaced || btn.disabled) return;
         bidPlaced = true;
         player.bid = parseInt(btn.dataset.bid);
         player.blindNil = false;
@@ -1952,10 +1995,11 @@ class Game {
     setTxt('#ragequit-loss-note', u.rageQuitLossNote);
     setTxt('#tut-prev', u.back);
     setTxt('#rules-close-btn', u.back);
+    if (document.getElementById('house-rules')) this._renderHouseRules();
 
     // Menu labels
     const labels = document.querySelectorAll('.option-group label');
-    const labelKeys = ['gameMode', 'playTo', 'aiDifficulty', 'gameSpeed'];
+    const labelKeys = ['gameMode', 'playTo', 'aiDifficulty', 'gameSpeed', 'houseRules'];
     labels.forEach((lbl, i) => { if (labelKeys[i] && u[labelKeys[i]]) lbl.textContent = u[labelKeys[i]]; });
 
     // Game mode buttons

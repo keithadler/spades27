@@ -111,7 +111,29 @@ function gameOutcome(scores, target) {
   return { over: true, winner: leaders[0] };
 }
 
+/**
+ * House rules a table can switch on or off.
+ * - nil / blindNil: whether those bids are allowed at all
+ * - minTeamBid: the "board" — a partnership must bid at least this many
+ *   tricks between them (0 = no minimum). Partnership mode only.
+ * - jokers: Jokers & Deuces deck (see card.js createDeck)
+ */
+const DEFAULT_HOUSE_RULES = { nil: true, blindNil: true, minTeamBid: 0, jokers: false };
+
+/**
+ * What a player may bid, given the house rules and their partner's bid
+ * (-1 if partner hasn't bid yet). The second partner to bid must bring the
+ * team up to the board; Nil is only allowed if partner already covered it.
+ * @returns {{minBid:number, allowNil:boolean}}
+ */
+function bidLimits(rules, teamMode, partnerBid) {
+  const r = Object.assign({}, DEFAULT_HOUSE_RULES, rules);
+  if (!teamMode || !r.minTeamBid || partnerBid < 0) return { minBid: 1, allowNil: r.nil };
+  const need = r.minTeamBid - partnerBid;
+  return { minBid: Math.max(1, need), allowNil: r.nil && need <= 0 };
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { trickWinnerIndex, nilScore, addBags, scoreTeamRound, scoreSoloRound, gameOutcome,
+  module.exports = { trickWinnerIndex, bidLimits, DEFAULT_HOUSE_RULES, nilScore, addBags, scoreTeamRound, scoreSoloRound, gameOutcome,
     NIL_BONUS, BLIND_NIL_BONUS, BAG_LIMIT, BAG_PENALTY, MERCY_SCORE };
 }

@@ -90,39 +90,73 @@ function _courtHalf(card, colorClass) {
  */
 function cardFaceSVG(card) {
   ensureCardSprite();
-  const colorClass = `${CARD_RED.has(card.suit) ? 'cf-red' : 'cf-black'} cf-${card.suit}`;
+  if (card.isJoker) return _jokerSVG(card);
+  // Draw what is printed on the card: the Jokers & Deuces 2♦ plays as a
+  // spade but still looks like a diamond (with a small trump marker).
+  const suit = card.faceSuit, rank = card.faceRank;
+  const colorClass = `${CARD_RED.has(suit) ? 'cf-red' : 'cf-black'} cf-${suit}`;
   const idx = (flip) => `<g${flip ? ' transform="rotate(180 100 140)"' : ''}>
-      <text x="24" y="46" text-anchor="middle" class="cf-index ${colorClass}">${card.rank}</text>
-      <g class="${colorClass}">${_pip(card.suit, 24, 66, 26, false)}</g>
+      <text x="24" y="46" text-anchor="middle" class="cf-index ${colorClass}">${rank}</text>
+      <g class="${colorClass}">${_pip(suit, 24, 66, 26, false)}</g>
     </g>`;
+  const face = { suit, rank };
 
   let body;
-  if (card.rank === 'A') {
-    const big = card.suit === 'spades' ? 104 : 70;
-    body = `<g class="${colorClass}">${_pip(card.suit, 100, 140, big, false)}</g>`;
-    if (card.suit === 'spades') {
+  if (rank === 'A') {
+    const big = suit === 'spades' ? 104 : 70;
+    body = `<g class="${colorClass}">${_pip(suit, 100, 140, big, false)}</g>`;
+    if (suit === 'spades') {
       body = `<ellipse cx="100" cy="140" rx="66" ry="80" class="cf-ace-ring"/>
         <ellipse cx="100" cy="140" rx="58" ry="72" class="cf-ace-ring thin"/>${body}
         <text x="100" y="232" text-anchor="middle" class="cf-ace-mark">SPADES 27</text>`;
     }
-  } else if (COURT_ORNAMENT[card.rank]) {
+  } else if (COURT_ORNAMENT[rank]) {
     body = `<rect x="44" y="30" width="112" height="220" rx="8" class="cf-court-frame ${colorClass}"/>
-      <clipPath id="clip-${card.suit}-${card.rank}"><rect x="44" y="30" width="112" height="220" rx="8"/></clipPath>
-      <g clip-path="url(#clip-${card.suit}-${card.rank})">
-        <rect x="44" y="30" width="112" height="110" class="cf-court-tint ${CARD_RED.has(card.suit) ? 'red' : 'black'}"/>
-        <rect x="44" y="140" width="112" height="110" class="cf-court-tint alt ${CARD_RED.has(card.suit) ? 'red' : 'black'}"/>
-        <g class="${colorClass}">${_courtHalf(card, colorClass)}</g>
-        <g class="${colorClass}" transform="rotate(180 100 140)">${_courtHalf(card, colorClass)}</g>
+      <clipPath id="clip-${suit}-${rank}"><rect x="44" y="30" width="112" height="220" rx="8"/></clipPath>
+      <g clip-path="url(#clip-${suit}-${rank})">
+        <rect x="44" y="30" width="112" height="110" class="cf-court-tint ${CARD_RED.has(suit) ? 'red' : 'black'}"/>
+        <rect x="44" y="140" width="112" height="110" class="cf-court-tint alt ${CARD_RED.has(suit) ? 'red' : 'black'}"/>
+        <g class="${colorClass}">${_courtHalf(face, colorClass)}</g>
+        <g class="${colorClass}" transform="rotate(180 100 140)">${_courtHalf(face, colorClass)}</g>
         <line x1="44" y1="140" x2="156" y2="140" class="cf-court-divider"/>
       </g>`;
   } else {
-    const n = parseInt(card.rank, 10);
-    body = `<g class="${colorClass}">${PIP_LAYOUTS[n].map(([x, y]) => _pip(card.suit, x, y, n >= 9 ? 34 : 38, y > 140)).join('')}</g>`;
+    const n = parseInt(rank, 10);
+    body = `<g class="${colorClass}">${PIP_LAYOUTS[n].map(([x, y]) => _pip(suit, x, y, n >= 9 ? 34 : 38, y > 140)).join('')}</g>`;
   }
+  // Promoted deuces carry a gold trump badge so the hand reads at a glance
+  const badge = (card.rank === '2D' || card.rank === '2S')
+    ? `<g transform="translate(24 100)"><circle r="14" class="cf-trump-badge"/><use href="#suit-spades" x="-8" y="-8" width="16" height="16" class="cf-trump-badge-suit"/></g>` : '';
 
-  return `<svg class="card-svg" viewBox="0 0 200 280" role="img" aria-label="${card.rank} of ${card.suit}">
+  return `<svg class="card-svg" viewBox="0 0 200 280" role="img" aria-label="${card.displayName}">
     <rect x="1.5" y="1.5" width="197" height="277" rx="14" class="cf-bg"/>
-    ${body}${idx(false)}${idx(true)}
+    ${body}${idx(false)}${idx(true)}${badge}
+    <rect x="1.5" y="1.5" width="197" height="277" rx="14" fill="url(#cf-sheen)" class="cf-sheen"/>
+    <rect x="1.5" y="1.5" width="197" height="277" rx="14" class="cf-edge"/>
+  </svg>`;
+}
+
+/** Big Joker (full color) and Little Joker (black and silver). */
+function _jokerSVG(card) {
+  const big = card.rank === 'BJ';
+  const ink = big ? 'cf-joker-big' : 'cf-joker-little';
+  const letters = 'JOKER'.split('').map((ch, i) => `<text x="24" y="${40 + i * 24}" text-anchor="middle" class="cf-joker-index ${ink}">${ch}</text>`).join('');
+  const star = (x, y, r) => `<path transform="translate(${x} ${y}) scale(${r / 10})" d="M0-10 2.9-3.1 10-3.1 4.3 1.2 6.5 8.1 0 4 -6.5 8.1 -4.3 1.2 -10-3.1 -2.9-3.1z" class="${ink}"/>`;
+  return `<svg class="card-svg" viewBox="0 0 200 280" role="img" aria-label="${card.displayName}">
+    <rect x="1.5" y="1.5" width="197" height="277" rx="14" class="cf-bg"/>
+    <rect x="44" y="30" width="112" height="220" rx="10" class="cf-joker-frame ${ink}"/>
+    <g transform="translate(100 118)">
+      <path d="M-44 18C-40-10-28-34-6-44L0 4 6-44C28-34 40-10 44 18Z" class="cf-joker-hat ${ink}"/>
+      <path d="M-44 18C-58 6-62-14-54-30-44-20-40-4-44 18ZM44 18C58 6 62-14 54-30 44-20 40-4 44 18Z" class="cf-joker-hat alt ${ink}"/>
+      <circle cx="-56" cy="-32" r="7" fill="url(#cf-gold)" stroke="#5a3a0a" stroke-width="1.5"/>
+      <circle cx="0" cy="-48" r="7" fill="url(#cf-gold)" stroke="#5a3a0a" stroke-width="1.5"/>
+      <circle cx="56" cy="-32" r="7" fill="url(#cf-gold)" stroke="#5a3a0a" stroke-width="1.5"/>
+      <rect x="-46" y="16" width="92" height="12" rx="4" fill="url(#cf-gold)" stroke="#5a3a0a" stroke-width="1.8"/>
+    </g>
+    ${star(100, 176, 16)}${star(72, 204, 8)}${star(128, 204, 8)}
+    <text x="100" y="236" text-anchor="middle" class="cf-joker-label ${ink}">${big ? 'BIG' : 'LITTLE'}</text>
+    ${letters}
+    <g transform="rotate(180 100 140)">${letters}</g>
     <rect x="1.5" y="1.5" width="197" height="277" rx="14" fill="url(#cf-sheen)" class="cf-sheen"/>
     <rect x="1.5" y="1.5" width="197" height="277" rx="14" class="cf-edge"/>
   </svg>`;

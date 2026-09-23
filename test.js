@@ -252,6 +252,47 @@ const monster = ['A','K','Q','J','10','9','8','7'].map(rk => C(rk,'spades')).con
 const mb = aiH.chooseBid(monster, -1, { teamMode: false });
 assert(mb >= 10 && mb <= 13, 'Monster hand can bid 10+: ' + mb);
 
+// Test 14: House rules — Jokers & Deuces
+console.log('\\n🃏 House Rules: Jokers & Deuces');
+const jd = createDeck(true);
+assert(jd.length === 52, 'Jokers deck still has 52 cards');
+assert(jd.filter(c => c.isSpade).length === 16, '16 trumps: 13 spades - 2♠ + 2♠/2♦ promoted + 2 jokers');
+assert(!jd.some(c => c.suit === 'clubs' && c.rank === '2') && !jd.some(c => c.suit === 'hearts' && c.rank === '2'), '2♣ and 2♥ are out');
+assert(jd.filter(c => c.suit === 'diamonds').length === 12, 'Diamonds: 12 (the 2♦ plays as a spade)');
+const BJ = new Card('spades','BJ'), LJ = new Card('spades','LJ'), D2 = new Card('spades','2D'), S2 = new Card('spades','2S');
+assert(trickWinnerIndex([C('A','spades'), S2, D2, LJ]) === 3, 'Little Joker beats 2♦, 2♠, A♠');
+assert(trickWinnerIndex([LJ, BJ, D2, S2]) === 1, 'Big Joker is the top trump');
+assert(trickWinnerIndex([C('A','diamonds'), D2, C('K','diamonds'), C('3','diamonds')]) === 1, 'The 2♦ trumps a diamond lead');
+const pj = new Player('J', true, 0);
+pj.hand = [D2, C('9','clubs')];
+assert(pj.getPlayableCards('diamonds', false).length === 2, 'Holding only the 2♦, you are void in diamonds');
+assert(pj.getPlayableCards('spades', true).length === 1 && pj.getPlayableCards('spades', true)[0].rank === '2D', 'The 2♦ must follow a spade lead');
+assert(D2.faceSuit === 'diamonds' && D2.faceRank === '2' && D2.displayName === '2♦', '2♦ still looks like a diamond');
+
+// Test 15: House rules — board and Nil switches
+console.log('\\n📏 House Rules: Board & Nil');
+const board = { minTeamBid: 4 };
+let lim = bidLimits(board, true, -1);
+assert(lim.minBid === 1 && lim.allowNil, 'First partner: no minimum yet');
+lim = bidLimits(board, true, 1);
+assert(lim.minBid === 3 && !lim.allowNil, 'Partner bid 1: you must bid 3+, no Nil');
+lim = bidLimits(board, true, 0);
+assert(lim.minBid === 4 && !lim.allowNil, 'Partner bid Nil: you must carry the board alone');
+lim = bidLimits(board, true, 5);
+assert(lim.minBid === 1 && lim.allowNil, 'Partner covered the board: Nil is fine');
+assert(bidLimits(board, false, -1).minBid === 1, 'No board in cutthroat');
+assert(!bidLimits({ nil: false }, true, -1).allowNil, 'Nil switched off');
+let okBoard = true, noNil = true;
+for (let i = 0; i < 300; i++) {
+  if (aiH.chooseBid(weakHand, 1, { teamMode: true, minBid: 3, allowNil: false }) < 3) okBoard = false;
+  if (aiH.chooseBid(weakHand, -1, { teamMode: true, allowNil: false }) === 0) noNil = false;
+}
+assert(okBoard, 'AI meets the board minimum');
+assert(noNil, 'AI never bids Nil when it is off');
+let blindOff = 0;
+for (let i = 0; i < 500; i++) if (aiH.chooseBlindNil(-1, { teamMode: true, myScore: 0, oppScore: 450, target: 500, allowBlindNil: false })) blindOff++;
+assert(blindOff === 0, 'AI never goes Blind Nil when it is off');
+
 console.log('\\n' + '='.repeat(40));
 console.log('Results: ' + passed + ' passed, ' + failed + ' failed');
 `;
