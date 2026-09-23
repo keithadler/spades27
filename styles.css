@@ -344,6 +344,7 @@ body.colorblind .cf-clubs { fill: #1e7d32; }
 @keyframes ddIn { from { opacity: 0; transform: translateY(-8px) scale(0.95); } }
 .dd-item { display: block; width: 100%; padding: 12px 16px; background: none; border: none; color: rgba(255,255,255,0.85); font-size: 0.95rem; font-weight: 500; text-align: left; cursor: pointer; border-radius: var(--r-sm); transition: background 0.15s, color 0.15s; }
 .dd-item:hover { background: rgba(255,255,255,0.08); }
+a.dd-item { text-decoration: none; box-sizing: border-box; }
 .dd-danger { color: #ff5a4a; }
 .dd-danger:hover { background: rgba(255,80,60,0.12); }
 

@@ -2031,6 +2031,7 @@ class Game {
     setTxt('#tut-prev', u.back);
     setTxt('#rules-close-btn', u.back);
     if (document.getElementById('house-rules')) this._renderHouseRules();
+    setTxt('#feedback-btn', u.feedback || '💬 Feedback');
 
     // Menu labels
     const labels = document.querySelectorAll('.option-group label');
