@@ -40,6 +40,39 @@ class SFX {
     src.start(); src.stop(ctx.currentTime + duration);
   }
 
+  /** A pitched-down thump: the body of a card hitting a padded table. */
+  _thump(f0, f1, duration, vol) {
+    if (!this.ctx || (window.game && window.game._soundMuted)) return;
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    const t = this.ctx.currentTime, osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(f0, t);
+    osc.frequency.exponentialRampToValueAtTime(f1, t + duration);
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(t); osc.stop(t + duration);
+  }
+
+  /** Air as a card is lifted for a slam or a drop. */
+  whoosh(big) { this._noise(big ? 1200 : 1600, big ? 0.3 : 0.2, big ? 0.05 : 0.03); }
+
+  /** Big play: a heavy slap on the felt, a crack, and the table rattling. */
+  slam() {
+    this._thump(150, 42, 0.5, 0.55);
+    this._noise(900, 0.14, 0.3);
+    this._noise(4200, 0.05, 0.16);
+    setTimeout(() => this._noise(2400, 0.09, 0.05), 70);
+    setTimeout(() => this._noise(2000, 0.06, 0.03), 140);
+  }
+
+  /** Breaking spades: a smaller, firm drop. */
+  thud() {
+    this._thump(125, 55, 0.28, 0.32);
+    this._noise(800, 0.08, 0.14);
+    this._noise(3800, 0.03, 0.07);
+  }
+
   playCard() {
     const p = 0.9 + Math.random() * 0.2;
     this._noise(3000 * p, 0.03, 0.05);

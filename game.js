@@ -862,24 +862,29 @@ class Game {
     // Remove from hand
     player.hand = player.hand.filter(c => !c.equals(card));
 
-    // Track spades broken — use enhanced FX
-    if (card.isSpade && !this.spadesBroken) {
-      this.spadesBroken = true;
-      this._showSpadesBrokenFX();
-    }
+    // First spade of the hand breaks spades
+    const breaksSpades = card.isSpade && !this.spadesBroken;
+    if (breaksSpades) this.spadesBroken = true;
 
     // Add to trick
     this.trick.push({ card, playerIndex: player.index });
 
-    if (this.sfx) this.sfx.playCard();
+    // Big plays get slammed onto the table; breaking spades gets a smaller
+    // drop; everything else is dealt onto the felt.
+    const play = breaksSpades ? null : this._bigPlay(card);
+    const big = play === 'trump' ? null : play;          // label for a slam
+    // Routine trump-ins get the firm drop; big plays get the slam
+    const impact = breaksSpades || play === 'trump' ? 'break' : big ? 'slam' : 'normal';
+    if (this.sfx && impact === 'normal') this.sfx.playCard();
     this._haptic(15);
 
-    // Avatar particles on the player who just played
-    this._spawnAvatarParticles(player);
-
-    // Animate card flying to center, then render trick area
-    this._animateCardPlay(player.index, card, () => {
+    // Draw the trick with the new card hidden in its slot, then fly the card
+    // there and reveal it on landing
+    this._renderTrickArea(this.trick.length - 1);
+    this._animateCardPlay(player.index, card, impact, () => {
       this._renderTrickArea();
+      if (impact !== 'normal') this._impactFX(impact, big, player.index);
+      if (breaksSpades) this._showSpadesBrokenFX();
     });
     this._updateUI();
 
@@ -896,18 +901,43 @@ class Game {
       }
     }
 
+    // Give the big moments room to land before play moves on
+    const extra = impact === 'slam' ? 700 : impact === 'break' ? 400 : 0;
     if (this.trick.length === 4) {
       // Trick complete — determine winner
       this._gameTimeout(() => {
         this._resolveTrick();
-      }, this._speedMs(1200));
+      }, this._speedMs(1200 + extra));
     } else {
       this._gameTimeout(() => {
         this._playLock = false;
         this.currentPlayer = (this.currentPlayer + 1) % 4;
         this._doTurn();
-      }, this._speedMs(500));
+      }, this._speedMs(500 + extra));
     }
+  }
+
+  /**
+   * Is the card just added to the trick a big play? Returns a label key,
+   * 'trump' for a routine trump-in, or null. Big plays: trumping an ace or
+   * king, over-trumping someone who already trumped, and the top trumps
+   * landing as winners (A♠, or the jokers in Jokers & Deuces).
+   */
+  _bigPlay(card) {
+    const cards = this.trick.map(t => t.card);
+    const winning = trickWinnerIndex(cards) === cards.length - 1;
+    if (!winning || !card.isSpade) return null;
+    if (card.rank === 'BJ') return 'fxBigJoker';
+    if (card.rank === 'LJ') return 'fxLittleJoker';
+    const lead = cards[0].suit;
+    if (lead !== 'spades') {
+      if (cards.slice(0, -1).some(c => c.isSpade)) return 'fxOvertrump';
+      // Trumping in is routine late in a hand; it's a big moment when it
+      // steals an ace or king
+      return cards.some(c => c.suit === lead && c.value >= 13) ? 'fxTrump' : 'trump';
+    }
+    if (card.rank === 'A' && !(this.rules && this.rules.jokers)) return 'fxAceSpades';
+    return null;
   }
 
   _resolveTrick() {
@@ -955,10 +985,6 @@ class Game {
     // Enhanced trick win effects
     this._showTrickWinFX(winner);
 
-    // Score vignette for human team wins
-    if (winner.isHuman || (this.teamMode && winner.team === 0)) {
-      this._showScoreVignette('good');
-    }
 
     // Show trick winner briefly
     this._showTrickWinner(winner, () => {
@@ -1406,7 +1432,8 @@ class Game {
     }
   }
 
-  _renderTrickArea() {
+  /** @param {number} [incoming] index of a card still in flight: drawn hidden, to be revealed on landing */
+  _renderTrickArea(incoming) {
     const area = document.getElementById('trick-area');
     if (!area) return;
     area.innerHTML = '';
@@ -1414,7 +1441,9 @@ class Game {
     const winIdx = this.trick.length ? trickWinnerIndex(this.trick.map(t => t.card)) : -1;
     this.trick.forEach((t, k) => {
       const el = document.createElement('div');
-      el.className = 'trick-card ' + from[t.playerIndex] + (k === winIdx && this.trick.length > 1 ? ' winning' : '');
+      el.className = 'trick-card ' + from[t.playerIndex] + (k === winIdx && this.trick.length > 1 ? ' winning' : '')
+        + (k === incoming ? ' incoming' : '');
+      el.dataset.slot = t.playerIndex;
       // A little tilt, stable per card so re-renders don't jitter
       const tilt = ((t.card.value * 7 + SUITS.indexOf(t.card.suit) * 13) % 11) - 5;
       el.style.setProperty('--tilt', tilt + 'deg');
@@ -1555,16 +1584,30 @@ class Game {
 
   // _showSpadesBroken moved to game-fx.js as _showSpadesBrokenFX
 
+  /**
+   * Hold the finished trick a beat so everyone can see it, then sweep the
+   * four cards over to the winner's seat.
+   */
   _showTrickWinner(winner, callback) {
-    const el = document.createElement('div');
-    el.className = 'trick-winner-popup';
-    el.innerHTML = `<img src="${winner.avatar}" style="width:40px;height:40px;border-radius:50%;" alt=""> ${this._t('winsTrick').replace('{name}', escHTML(winner.name))}`;
-    document.body.appendChild(el);
-    spawnParticles(window.innerWidth / 2, window.innerHeight / 2, 10, 'particle-gold');
-    const ms = this._speedMs(1200);
-    setTimeout(() => el.remove(), ms);
-    this._gameTimeout(callback, ms);
+    const info = document.getElementById('trick-info');
+    if (info) info.textContent = this._t('winsTrick').replace('{name}', winner.name);
+    const hold = this._speedMs(650), sweep = Math.max(240, this._speedMs(420));
+    setTimeout(() => {
+      const seat = winner.isHuman ? document.querySelector('#human-info .seat-avatar') || document.getElementById('player-hand')
+        : document.querySelector(`#opponent-${this._getPlayerPosition(winner.index)} .seat-avatar`);
+      const to = seat ? seat.getBoundingClientRect() : null;
+      document.querySelectorAll('#trick-area .trick-card').forEach((el, k) => {
+        if (!to || !el.animate) return;
+        const r = el.getBoundingClientRect();
+        const dx = to.left + to.width / 2 - (r.left + r.width / 2), dy = to.top + to.height / 2 - (r.top + r.height / 2);
+        el.animate([{ translate: '0 0', scale: '1', opacity: 1 },
+          { translate: `${dx}px ${dy}px`, scale: '0.3', opacity: 0 }],
+          { duration: sweep, delay: k * 35, easing: 'cubic-bezier(.5,0,.75,.3)', fill: 'forwards' });
+      });
+    }, hold);
+    this._gameTimeout(callback, hold + sweep + 140);
   }
+
 
   _showRoundResults(callback) {
     const overlay = document.getElementById('message-overlay');

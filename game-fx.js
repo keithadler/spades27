@@ -195,57 +195,129 @@ Object.assign(Game.prototype, {
   // CARD PLAY ANIMATION — Card flies from player position to trick area
   // =========================================================================
 
-  _animateCardPlay(playerIndex, card, callback) {
-    const pos = this._getPlayerPosition(playerIndex);
-    let startX, startY;
+  /**
+   * Fly a played card from its owner to its slot in the trick. The slot is
+   * already drawn (hidden) by _renderTrickArea, so the card lands exactly
+   * where it will stay, at the same tilt.
+   *   normal — dealt onto the felt in a low arc
+   *   break  — lifted and dropped (first spade of the hand)
+   *   slam   — thrown high and slammed down (big plays)
+   * @param {'normal'|'break'|'slam'} impact
+   */
+  _animateCardPlay(playerIndex, card, impact, callback) {
+    const slot = document.querySelector('#trick-area .trick-card.incoming');
+    const done = () => { if (callback) callback(); };
+    if (!slot || !slot.animate) { done(); return; }
+    const end = slot.getBoundingClientRect();
+    const ex = end.left + end.width / 2, ey = end.top + end.height / 2;
 
-    // Get start position from the player's panel
-    if (pos === 'bottom') {
-      startX = window.innerWidth / 2;
-      startY = window.innerHeight - 60;
+    // Start: the actual card in your hand, or the opponent's fanned hand
+    let sx = window.innerWidth / 2, sy = window.innerHeight, startScale = 0.9;
+    if (playerIndex === 0) {
+      const mine = [...document.querySelectorAll('#player-hand .hand-card')]
+        .find(el => el.getAttribute('aria-label') && el.getAttribute('aria-label').startsWith(`${card.rank} of ${card.suit}`));
+      if (mine) { const r = mine.getBoundingClientRect(); sx = r.left + r.width / 2; sy = r.top + r.height / 2; }
     } else {
-      const panel = document.getElementById('opponent-' + pos);
-      if (panel) {
-        const r = panel.getBoundingClientRect();
-        startX = r.left + r.width / 2;
-        startY = r.top + r.height / 2;
-      } else {
-        startX = window.innerWidth / 2;
-        startY = window.innerHeight / 2;
-      }
+      const fan = document.querySelector(`#opponent-${this._getPlayerPosition(playerIndex)} .seat-fan`)
+        || document.getElementById('opponent-' + this._getPlayerPosition(playerIndex));
+      if (fan) { const r = fan.getBoundingClientRect(); sx = r.left + r.width / 2; sy = r.top + r.height / 2; }
+      startScale = 0.45;
     }
 
-    // Get end position (center of trick area)
-    const trickArea = document.getElementById('trick-area');
-    const trickRect = trickArea ? trickArea.getBoundingClientRect() : { left: window.innerWidth / 2 - 50, top: window.innerHeight / 2 - 50, width: 100, height: 100 };
-    const endX = trickRect.left + trickRect.width / 2;
-    const endY = trickRect.top + trickRect.height / 2;
-
-    // Create flying card
-    const w = this._cardWidth(), h = w * 1.4;
+    const w = slot.offsetWidth, h = slot.offsetHeight;
+    const tilt = parseFloat(slot.style.getPropertyValue('--tilt')) || 0;
     const el = document.createElement('div');
     el.className = 'fly-card';
-    el.style.cssText = `
-      position:fixed; z-index:60; pointer-events:none;
-      width:${w}px; height:${h}px;
-      filter:drop-shadow(0 8px 14px rgba(0,0,0,0.5));
-      left:${startX - w / 2}px; top:${startY - h / 2}px;
-      transition:all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      transform:scale(0.7) rotate(${(Math.random() - 0.5) * 20}deg);
-    `;
+    el.style.cssText = `position:fixed;z-index:60;pointer-events:none;width:${w}px;height:${h}px;left:${ex - w / 2}px;top:${ey - h / 2}px;`;
     el.innerHTML = cardFaceSVG(card);
     document.body.appendChild(el);
 
-    requestAnimationFrame(() => {
-      el.style.left = (endX - w / 2) + 'px';
-      el.style.top = (endY - h / 2) + 'px';
-      el.style.transform = 'scale(1) rotate(0deg)';
-    });
+    const dx = sx - ex, dy = sy - ey;
+    const from = { transform: `translate(${dx}px, ${dy}px) rotate(${tilt - 14}deg) scale(${startScale})`, filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.4))' };
+    const land = { transform: `translate(0, 0) rotate(${tilt}deg) scale(1)`, filter: 'drop-shadow(0 3px 4px rgba(0,0,0,0.55))' };
+    let frames, ms;
+    if (impact === 'normal') {
+      frames = [from, land];
+      ms = Math.max(220, this._speedMs(360));
+    } else {
+      // Rise above the slot (shadow spreads out: the card is "high"), hang,
+      // then drop hard onto the felt
+      const big = impact === 'slam';
+      const lift = h * (big ? 0.95 : 0.55);
+      const top = { offset: big ? 0.52 : 0.5, transform: `translate(0, ${-lift}px) rotate(${tilt + (big ? -10 : -6)}deg) scale(${big ? 1.85 : 1.35})`,
+        filter: `drop-shadow(0 ${big ? 60 : 34}px ${big ? 26 : 16}px rgba(0,0,0,0.35))`, easing: 'cubic-bezier(.55,0,1,.45)' };
+      const hang = { offset: big ? 0.66 : 0.6, transform: `translate(0, ${-lift * 1.04}px) rotate(${tilt + (big ? -7 : -4)}deg) scale(${big ? 1.9 : 1.37})`,
+        filter: top.filter, easing: 'cubic-bezier(.6,0,1,.6)' };
+      frames = [Object.assign({ easing: 'cubic-bezier(.2,.8,.3,1)' }, from), top, hang, land];
+      ms = Math.max(big ? 520 : 400, this._speedMs(big ? 820 : 600));
+      if (this.sfx && this.sfx.whoosh) this.sfx.whoosh(big);
+    }
+    el.animate(frames, { duration: ms, fill: 'forwards' }).onfinish = () => { el.remove(); done(); };
+  },
 
-    setTimeout(() => {
-      el.remove();
-      if (callback) callback();
-    }, 420);
+  /**
+   * The moment a slammed or dropped card hits the felt: a shockwave ring,
+   * dust kicked up around it, the table jolts and the other cards in the
+   * trick hop, a thud — and for big plays a stamp naming the play.
+   */
+  _impactFX(kind, labelKey, playerIndex) {
+    const card = document.querySelector(`#trick-area .trick-card[data-slot="${playerIndex}"]`);
+    if (!card) return;
+    const r = card.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const slam = kind === 'slam';
+    const add = (cls, css) => { const d = document.createElement('div'); d.className = cls; d.style.cssText = css; document.body.appendChild(d); return d; };
+    const later = (el, ms) => setTimeout(() => el.remove(), ms);
+
+    // Shockwave ring(s) on the felt
+    const size = r.width * (slam ? 1.3 : 1.0);
+    const ring = add('impact-ring', `left:${cx}px;top:${cy + r.height * 0.3}px;width:${size}px;height:${size * 0.45}px;--ring-scale:${slam ? 3.4 : 2.2}`);
+    later(ring, 800);
+    if (slam) { const ring2 = add('impact-ring thin', `left:${cx}px;top:${cy + r.height * 0.3}px;width:${size}px;height:${size * 0.45}px;--ring-scale:5;animation-delay:70ms`); later(ring2, 900); }
+
+    // Light flash under the card
+    if (slam) later(add('impact-flash', `left:${cx}px;top:${cy}px;width:${r.width * 4}px;height:${r.width * 3}px`), 500);
+
+    // Dust / felt fibres kicked out sideways
+    const n = slam ? 22 : 10;
+    for (let i = 0; i < n; i++) {
+      const a = Math.PI * (i / n) * 2 + Math.random() * 0.4;
+      const dist = r.width * (slam ? 0.9 + Math.random() * 1.1 : 0.5 + Math.random() * 0.6);
+      const d = add('impact-dust', `left:${cx + Math.cos(a) * r.width * 0.35}px;top:${cy + r.height * 0.35 + Math.sin(a) * r.width * 0.15}px`);
+      if (d.animate) d.animate([
+        { transform: 'translate(0,0) scale(1)', opacity: 0.9 },
+        { transform: `translate(${Math.cos(a) * dist}px, ${Math.sin(a) * dist * 0.45 - (slam ? 18 : 8)}px) scale(0.3)`, opacity: 0 },
+      ], { duration: 420 + Math.random() * 260, easing: 'cubic-bezier(.1,.7,.3,1)' });
+      later(d, 750);
+    }
+
+    // The table jolts; the other cards in the trick hop off the felt
+    const table = document.getElementById('game-layout');
+    if (table) {
+      const cls = slam ? 'table-slam' : 'table-bump';
+      table.classList.remove('table-slam', 'table-bump'); void table.offsetWidth;
+      table.classList.add(cls);
+      setTimeout(() => table.classList.remove(cls), 600);
+    }
+    document.querySelectorAll('#trick-area .trick-card').forEach(other => {
+      if (other === card || !other.animate) return;
+      other.animate([{ translate: '0 0' }, { translate: `0 ${slam ? -12 : -5}px` }, { translate: '0 0' }],
+        { duration: slam ? 380 : 260, easing: 'cubic-bezier(.3,1.6,.5,1)' });
+    });
+    // The card itself squashes a touch on contact
+    if (card.animate) card.animate([{ scale: '1.06 0.94' }, { scale: '1' }], { duration: 220, easing: 'ease-out' });
+
+    // Name the play, centred above the trick
+    if (slam && labelKey) {
+      const area = document.getElementById('trick-area');
+      const a = area ? area.getBoundingClientRect() : r;
+      const stamp = add('impact-label', `left:${a.left + a.width / 2}px;top:${a.top - 4}px`);
+      stamp.textContent = this._t(labelKey);
+      later(stamp, 1400);
+    }
+
+    if (this.sfx) slam ? this.sfx.slam() : this.sfx.thud();
+    this._haptic(slam ? [40, 30, 90] : [25, 20, 40]);
   },
 
   // =========================================================================
@@ -257,7 +329,7 @@ Object.assign(Game.prototype, {
     popup.className = 'score-popup';
     popup.style.cssText = `
       position:fixed; pointer-events:none; z-index:50;
-      font-size:3.5rem; font-weight:900; letter-spacing:3px;
+      font-family:Georgia,'Times New Roman',serif; font-size:3.8rem; font-weight:900; letter-spacing:2px;
       color:${color || '#fff'};
       text-shadow:0 0 15px ${color || '#e8c170'}, 0 0 30px ${color || '#e8c170'}, 0 6px 12px rgba(0,0,0,0.7);
       left:${x || '50%'}; top:${y || '40%'};
@@ -274,20 +346,16 @@ Object.assign(Game.prototype, {
   // =========================================================================
 
   _showTrickWinFX(winner) {
-    // Particles burst from center
-    spawnParticles(window.innerWidth / 2, window.innerHeight / 2, 15, 'particle-gold');
-
-    // Screen shake on spade tricks
-    const boardArea = document.getElementById('board-area');
-    if (boardArea) {
-      boardArea.classList.remove('board-shake');
-      void boardArea.offsetWidth;
-      boardArea.classList.add('board-shake');
-      setTimeout(() => boardArea.classList.remove('board-shake'), 500);
+    // The winner's seat plate glows as the trick sweeps over to it
+    const plate = winner.isHuman
+      ? document.querySelector('#human-info .seat-plate')
+      : document.querySelector(`#opponent-${this._getPlayerPosition(winner.index)} .seat-plate`);
+    if (plate) {
+      plate.classList.remove('took-trick'); void plate.offsetWidth;
+      plate.classList.add('took-trick');
+      setTimeout(() => plate.classList.remove('took-trick'), 900);
     }
-
-    // Haptic feedback
-    this._haptic([15, 30, 15]);
+    this._haptic(12);
   },
 
   // =========================================================================
@@ -297,7 +365,7 @@ Object.assign(Game.prototype, {
   _showComboPopup(count) {
     const popup = document.createElement('div');
     popup.className = 'combo-popup';
-    popup.textContent = `×${count} STREAK`;
+    popup.textContent = `×${count} ${this._t('fxStreak')}`;
     document.body.appendChild(popup);
     this._haptic([20, 40, 20]);
     setTimeout(() => popup.remove(), 1000);
@@ -307,26 +375,14 @@ Object.assign(Game.prototype, {
   // SPADES BROKEN — Enhanced banner with particles
   // =========================================================================
 
+  /** "Spades broken" stamp over the table (the drop itself is _impactFX). */
   _showSpadesBrokenFX() {
     const el = document.createElement('div');
     el.className = 'spades-broken-banner';
-    el.textContent = this._t('spadesBroken');
+    el.innerHTML = `<span class="sbb-suit">♠</span>${escHTML(this._t('spadesBroken').replace(/^♠\s*/, ''))}`;
+    el.style.animationDelay = '0ms, 1700ms';
     document.body.appendChild(el);
-
-    // Blue particle burst
-    spawnParticles(window.innerWidth / 2, window.innerHeight * 0.3, 25, 'particle-gold');
-
-    // Screen shake
-    const boardArea = document.getElementById('board-area');
-    if (boardArea) {
-      boardArea.classList.remove('board-shake-heavy');
-      void boardArea.offsetWidth;
-      boardArea.classList.add('board-shake-heavy');
-      setTimeout(() => boardArea.classList.remove('board-shake-heavy'), 600);
-    }
-
-    this._haptic([30, 50, 60]);
-    setTimeout(() => el.remove(), 2500);
+    setTimeout(() => el.remove(), 2300);
   },
 
   // =========================================================================
@@ -374,7 +430,7 @@ Object.assign(Game.prototype, {
   _showFirstBlood(winner) {
     const el = document.createElement('div');
     el.className = 'first-blood-banner';
-    el.textContent = `${this._t('firstTrick')} 🃏`;
+    el.textContent = this._t('firstTrick');
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 1500);
   },

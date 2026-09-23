@@ -228,6 +228,36 @@ body[data-theme="light"] .rule-toggle.on { color: #2b2116; border-color: rgba(15
 .lt-play.won .lt-name { color: var(--gold); }
 @media (max-width: 700px) { #last-trick-btn { left: 16px; top: 8px; } }
 
+/* ===== Card impacts: slams, drops, trick sweeps ===== */
+.fly-card { will-change: transform, filter; }
+.impact-ring { position: fixed; z-index: 4; pointer-events: none; border-radius: 50%; transform: translate(-50%, -50%) scale(0.3);
+  border: 3px solid rgba(255,236,190,0.8); box-shadow: 0 0 18px rgba(255,236,190,0.45), inset 0 0 14px rgba(255,236,190,0.35);
+  animation: ringOut 0.62s cubic-bezier(.1,.7,.3,1) forwards; }
+.impact-ring.thin { border-width: 1.5px; opacity: 0.6; animation-duration: 0.8s; }
+@keyframes ringOut { from { opacity: 1; transform: translate(-50%, -50%) scale(0.3); } to { opacity: 0; transform: translate(-50%, -50%) scale(var(--ring-scale, 3)); } }
+.impact-flash { position: fixed; z-index: 3; pointer-events: none; transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(255,240,200,0.55), rgba(255,220,150,0.18) 35%, transparent 65%);
+  mix-blend-mode: screen; animation: flashOut 0.45s ease-out forwards; }
+@keyframes flashOut { from { opacity: 1; } to { opacity: 0; } }
+.impact-dust { position: fixed; z-index: 4; pointer-events: none; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%;
+  background: radial-gradient(circle, #fffbe8 0%, rgba(255,236,190,0.9) 45%, rgba(255,236,190,0) 75%); box-shadow: 0 0 8px rgba(255,236,190,0.7); }
+.impact-label { position: fixed; z-index: 58; pointer-events: none; transform: translate(-50%, -100%); white-space: nowrap;
+  font-family: Georgia, 'Times New Roman', serif; font-size: 1.9rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
+  background: linear-gradient(180deg, #fff6d8 0%, #f3d48a 40%, #c8973a 70%, #8a5e1c 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  filter: drop-shadow(0 3px 0 rgba(40,24,4,0.95)) drop-shadow(0 8px 16px rgba(0,0,0,0.7));
+  animation: stampIn 0.35s cubic-bezier(.2,1.8,.4,1) backwards, stampOut 0.4s ease-in 1s forwards; }
+@keyframes stampIn { from { opacity: 0; transform: translate(-50%, -100%) scale(2.4) rotate(-10deg); } to { opacity: 1; transform: translate(-50%, -100%) scale(1) rotate(-4deg); } }
+@keyframes stampOut { to { opacity: 0; transform: translate(-50%, -140%) scale(0.95) rotate(-4deg); } }
+#game-layout.table-slam { animation: tableSlam 0.5s cubic-bezier(.3,.6,.4,1); }
+#game-layout.table-bump { animation: tableBump 0.34s ease-out; }
+@keyframes tableSlam {
+  0% { transform: translate(0, 0) scale(1); } 12% { transform: translate(0, 7px) scale(0.992); } 28% { transform: translate(-5px, -3px); }
+  44% { transform: translate(4px, 2px); } 62% { transform: translate(-2px, -1px); } 80% { transform: translate(1px, 0); } 100% { transform: none; } }
+@keyframes tableBump { 0% { transform: none; } 25% { transform: translateY(3px) scale(0.997); } 60% { transform: translateY(-1px); } 100% { transform: none; } }
+.seat-plate.took-trick { animation: tookTrick 0.9s ease-out; }
+@keyframes tookTrick { 0% { box-shadow: 0 0 0 0 rgba(232,193,112,0.9), 0 8px 22px rgba(0,0,0,0.55); } 100% { box-shadow: 0 0 0 16px rgba(232,193,112,0), 0 8px 22px rgba(0,0,0,0.55); } }
+@media (prefers-reduced-motion: reduce) { .impact-ring, .impact-flash, .impact-dust { display: none; } }
+
 /* Cards: the SVG is the card */
 .card-svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .cf-bg { fill: var(--card-face, #fdfcf7); }
@@ -269,8 +299,9 @@ body.colorblind .cf-clubs { fill: #1e7d32; }
 .hand-card, .trick-card, .mini-card, .fly-card { border-radius: 7% / 5%; }
 .trick-card {
   position: absolute; width: calc(var(--cw) * 1.02); height: calc(var(--ch) * 1.02);
-  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.45)); animation: cardLand 0.28s cubic-bezier(.2,.9,.3,1.2);
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.55));
 }
+.trick-card.incoming { visibility: hidden; }
 .trick-card.from-bottom { left: 50%; bottom: 0; transform: translateX(-50%) rotate(var(--tilt, 0deg)); }
 .trick-card.from-top { left: 50%; top: 0; transform: translateX(-50%) rotate(var(--tilt, 0deg)); }
 .trick-card.from-left { left: 0; top: 50%; transform: translateY(-50%) rotate(var(--tilt, 0deg)); }
@@ -501,7 +532,17 @@ body.colorblind .bid-suit-icon[data-suit="clubs"] { color: #58b56a; }
 }
 
 /* Spades broken banner */
-.spades-broken-banner { position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%); padding: 16px 32px; background: linear-gradient(145deg, rgba(232,193,112,0.9), rgba(42,96,160,0.9)); color: #fff; border-radius: 14px; font-weight: 900; font-size: 1.3rem; z-index: 50; pointer-events: none; box-shadow: 0 8px 30px rgba(232,193,112,0.5); animation: spadesBrokenIn 0.4s ease-out, spadesBrokenOut 0.5s ease-in 1.5s forwards; }
+.spades-broken-banner {
+  position: fixed; top: 27%; left: 50%; z-index: 55; pointer-events: none; display: flex; align-items: center; gap: 12px;
+  padding: 10px 26px 10px 14px; border-radius: 999px; white-space: nowrap;
+  font-family: Georgia, 'Times New Roman', serif; font-size: 1.35rem; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; color: #2a1a04;
+  background: linear-gradient(180deg, #fff1c8 0%, #e8c170 45%, #b8862e 100%); border: 2px solid #7a5418;
+  box-shadow: 0 6px 0 #5a3a0a, 0 16px 40px rgba(0,0,0,0.6), 0 0 40px rgba(232,193,112,0.45);
+  transform: translate(-50%, -50%); animation: sbbIn 0.45s cubic-bezier(.2,1.6,.4,1) backwards, sbbOut 0.45s ease-in forwards;
+}
+.sbb-suit { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; background: #1a1611; color: var(--gold); font-size: 1.4rem; font-family: system-ui, sans-serif; box-shadow: inset 0 0 0 2px rgba(232,193,112,0.5); }
+@keyframes sbbIn { from { opacity: 0; transform: translate(-50%, -50%) scale(2.2) rotate(-6deg); } to { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); } }
+@keyframes sbbOut { to { opacity: 0; transform: translate(-50%, -80%) scale(0.9); } }
 @keyframes spadesBrokenIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } }
 @keyframes spadesBrokenOut { to { opacity: 0; } }
 
@@ -689,36 +730,26 @@ body.colorblind .bid-suit-icon[data-suit="clubs"] { color: #58b56a; }
 .board-shake-heavy { animation:boardShakeHeavy 0.6s ease-out; }
 
 /* Combo popup */
-.combo-popup {
-  position:fixed; top:40%; left:50%;
-  transform:translate(-50%,-50%) scale(0.5);
-  font-size:2.5rem; font-weight:900; color:#e8c170;
-  text-shadow:0 0 20px rgba(232,193,112,0.8), 0 4px 12px rgba(0,0,0,0.5);
-  z-index:80; pointer-events:none; opacity:0;
-  animation:comboIn 0.8s ease-out forwards; letter-spacing:4px;
+.combo-popup, .first-blood-banner {
+  position: fixed; left: 50%; z-index: 80; pointer-events: none; white-space: nowrap; opacity: 0;
+  font-family: Georgia, 'Times New Roman', serif; font-weight: 900; text-transform: uppercase;
+  background: linear-gradient(180deg, #fff6d8 0%, #f3d48a 40%, #c8973a 70%, #8a5e1c 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  filter: drop-shadow(0 3px 0 rgba(40,24,4,0.95)) drop-shadow(0 8px 16px rgba(0,0,0,0.7));
 }
+.combo-popup { top: 38%; font-size: 2.6rem; letter-spacing: 4px; animation: comboIn 1s ease-out forwards; }
+.first-blood-banner { top: 30%; font-size: 1.7rem; letter-spacing: 5px; animation: firstBloodIn 1.5s ease-out forwards; }
 @keyframes comboIn {
-  0% { opacity:0; transform:translate(-50%,-50%) scale(0.5); }
-  30% { opacity:1; transform:translate(-50%,-50%) scale(1.3); }
-  60% { transform:translate(-50%,-50%) scale(1); }
-  100% { opacity:0; transform:translate(-50%,-60%) scale(1); }
-}
-
-/* First blood / first trick banner */
-.first-blood-banner {
-  position:fixed; top:30%; left:50%;
-  transform:translate(-50%,-50%) scale(0.5);
-  font-size:2rem; font-weight:900; color:#e8c170;
-  text-shadow:0 0 20px rgba(232,193,112,0.8), 0 4px 12px rgba(0,0,0,0.5);
-  z-index:80; pointer-events:none; opacity:0;
-  animation:firstBloodIn 1.5s ease-out forwards; letter-spacing:3px; white-space:nowrap;
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(2) rotate(-6deg); }
+  25% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-3deg); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -80%) scale(1) rotate(-3deg); }
 }
 @keyframes firstBloodIn {
-  0% { opacity:0; transform:translate(-50%,-50%) scale(0.5); }
-  20% { opacity:1; transform:translate(-50%,-50%) scale(1.2); }
-  40% { transform:translate(-50%,-50%) scale(1); }
-  80% { opacity:1; }
-  100% { opacity:0; transform:translate(-50%,-60%) scale(1); }
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); letter-spacing: 14px; }
+  25% { opacity: 1; transform: translate(-50%, -50%) scale(1); letter-spacing: 5px; }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -70%) scale(1); }
 }
 
 /* Round announcement animations */

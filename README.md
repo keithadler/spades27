@@ -24,7 +24,7 @@ python3 -m http.server 8080
 
 **AI** — Heuristic scoring engine with 3 difficulty levels and a memory of every card played this hand. Easy plays like a beginner (leads high, wastes winners) but never trumps a partner's winning card. Medium uses the full heuristics with some variety. Hard plays like a solid club player: third hand high, leads cards that are the highest left in their suit instead of unprotected kings, covers a partner's Nil with its highest winner, goes for the set when the opponents need nearly every trick left, and fights bags once the team bid is made. Blind Nil only when partner has bid big enough to cover it. Each opponent gets a random generation (Gen Z, Millennial, Gen X, Boomer) with culturally authentic Spades trash talk. 5 personalities: Aggressive, Defensive, Chaotic, Calculated, Bully.
 
-**Visuals** — A casino card table: green felt oval with a wooden rim (5 felt colors), a real printed-deck look drawn in vector art (standard pip layouts, crowned double-headed court cards, an ornamental Ace of Spades, lattice card backs), your hand fanned in an arc with playable cards raised, opponents' hands fanned behind their seat plates, the winning card glowing in the trick, a gold scoreboard, bid chips laid on the felt while your hand stays in view, a round-results scoreboard with a race-to-500 bar, and a victory screen with the four aces. Deal animation, particle effects, screen shake, 6 card skins, and victory celebrations that scale with margin.
+**Visuals** — A casino card table: green felt oval with a wooden rim (5 felt colors), a real printed-deck look drawn in vector art (standard pip layouts, crowned double-headed court cards, an ornamental Ace of Spades, lattice card backs), your hand fanned in an arc with playable cards raised, opponents' hands fanned behind their seat plates, the winning card glowing in the trick, a gold scoreboard, bid chips laid on the felt while your hand stays in view, a round-results scoreboard with a race-to-500 bar, and a victory screen with the four aces. Cards arc from the hand to their exact spot on the felt; big plays (trumping an ace or king, over-trumping, A♠ and the jokers taking a trick) are thrown up and slammed down with a shockwave, dust, a table jolt, a thud and a gold stamp naming the play; breaking spades and routine trump-ins get a smaller drop; won tricks sweep to the winner's seat. Deal animation, 6 card skins, and victory celebrations that scale with margin.
 
 **i18n** — English, Spanish, Arabic (full RTL), Chinese. Auto-detects browser language. First-visit language picker. Language selector on menu and in preferences. Full UI translations (100+ keys per language), translated rules and 9-step tutorial, culturally authentic names/cities/trash talk per language.
 
@@ -134,6 +134,13 @@ node sim.js 2000 hard teams
 ```
 
 ## Changelog
+
+### v4.3 — September 2026
+- Card FX rebuilt: cards fly in an arc from your hand (or the opponent's fan) to their exact slot at the right tilt — no more jump at the end
+- Big plays get slammed: the card rises, hangs and crashes onto the felt with a shockwave ring, light flash, dust, a table jolt, the other cards hopping, a heavy thud and a gold stamp ("Trumped!", "Over-trumped!", "Ace of Spades!", "Big Joker!")
+- Breaking spades (and routine trump-ins) get a smaller drop and a gold "Spades Broken" medallion stamp
+- Won tricks sweep to the winner's seat, which glows; the per-trick screen shake, particle bursts, popup and flash are gone so the big moments stand out
+- First-trick and streak callouts restyled in the gold serif; streak text translated
 
 ### v4.2 — September 2026
 - Losing-floor house rule: −200 (default), −500, or none
