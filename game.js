@@ -399,6 +399,7 @@ class Game {
       wasDown100: this._wasDown100 || false,
       gameBagsAccrued: this._gameBagsAccrued || 0,
       lastTrickWinner: this._lastTrickWinner ?? -1,
+      played: (this._played || []).map(c => [c.suit, c.rank]),
       trickCombo: this._trickCombo || 0
     };
     localStorage.setItem('spades_saved_game', JSON.stringify(state));
@@ -429,6 +430,7 @@ class Game {
       this._wasDown100 = s.wasDown100 || false;
       this._gameBagsAccrued = s.gameBagsAccrued || 0;
       this._lastTrickWinner = s.lastTrickWinner ?? -1;
+      this._played = (s.played || []).map(c => new Card(c[0], c[1]));
       this._trickCombo = s.trickCombo || 0;
       this.roundOver = false; this.gameOver = false; this._playLock = false;
       localStorage.removeItem('spades_saved_game');
@@ -445,6 +447,8 @@ class Game {
     this._updateXPBar();
     this._updateUI();
     this._renderTrickArea();
+    // Saved during the deal or the bidding: carry on bidding
+    if (this._trickNum < 1) { this._renderHumanHand(this.players[0], []); this._startBidPhase(true); return; }
     this._doTurn();
   }
 
@@ -460,6 +464,7 @@ class Game {
     this._lastTrickWinner = -1;
     this._trickCombo = 0;
     this._lastTrick = null;
+    this._played = [];
     this._hideLastTrick();
 
     for (const p of this.players) p.resetRound();
@@ -469,6 +474,8 @@ class Game {
       this.players[i % 4].hand.push(deck[i]);
     }
     for (const p of this.players) sortHand(p.hand);
+    // Save the deal right away: reloading must never be a free re-deal
+    this._saveGameState();
 
     if (this.sfx) this.sfx.shuffle();
 
@@ -495,18 +502,22 @@ class Game {
     }
   }
 
-  _startBidPhase() {
+  _startBidPhase(resumed) {
     this._bidOrder = [];
     for (let i = 1; i <= 4; i++) this._bidOrder.push((this.dealer + i) % 4);
-    this._currentBidIdx = 0;
+    // Resuming a saved game mid-bidding picks up with the next bidder
+    this._currentBidIdx = this._bidOrder.filter(i => this.players[i].hasBid).length;
     // Blind nil: only in team mode, only when your team is down 100+
     const canBlind = this.teamMode && this.teams && this.rules.blindNil && this.teams[0].score <= this.teams[1].score - 100;
     this._humanCanBlindNil = canBlind;
-    this._humanBlindNilAsked = false;
+    // After a resume your cards are already on screen, so Blind Nil (a bid
+    // made without looking) is off the table for this hand
+    this._humanBlindNilAsked = !!resumed;
     this._doBid();
   }
 
   _doBid() {
+    if (this._currentBidIdx > 0) this._saveGameState(); // every bid is final once made
     if (this._currentBidIdx >= 4) {
       // All bids placed — go straight to play (bid tracker is on the table)
       this._renderHumanHand(this.players[0], []);
@@ -813,6 +824,8 @@ class Game {
       })),
       myTeam: player.team,
       teamMode: this.teamMode,
+      played: this._played || [],  // cards from earlier tricks this hand
+      jokers: this.rules.jokers,
     };
     const card = player.ai.chooseCard(player.hand, trickCards, leadSuit, this.spadesBroken, ctx);
     if (card) this._playCard(player, card);
@@ -916,6 +929,7 @@ class Game {
     }
 
     this._lastTrick = { plays: this.trick.map(t => ({ card: t.card, playerIndex: t.playerIndex })), winner: winner.index };
+    this._played = (this._played || []).concat(this.trick.map(t => t.card));
 
     this.gameLog.push({
       round: this._roundNum, trick: this._trickNum,

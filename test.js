@@ -235,12 +235,15 @@ assert(!gameOutcome([510, 510, 0, 0], 500).over, 'Cutthroat tie for first: play 
 // Test 13: AI bidding rules
 console.log('\\n🙈 AI Nil & Blind Nil');
 const aiM = new AI('medium');
-assert(!aiH.chooseBlindNil(-1, { teamMode: true, myScore: 200, oppScore: 250, target: 500 }), 'No blind nil when down < 100');
+assert(!aiH.chooseBlindNil(5, { teamMode: true, myScore: 200, oppScore: 250, target: 500 }), 'No blind nil when down < 100');
+let blindWeakPartner = 0;
+for (let i = 0; i < 500; i++) if (aiH.chooseBlindNil(2, { teamMode: true, myScore: 0, oppScore: 450, target: 500 })) blindWeakPartner++;
+assert(blindWeakPartner === 0, 'No blind nil unless partner bid 4+');
 assert(!aiH.chooseBlindNil(0, { teamMode: true, myScore: 0, oppScore: 450, target: 500 }), 'No blind nil next to a partner nil');
 assert(!aiE.chooseBlindNil(-1, { teamMode: true, myScore: 0, oppScore: 450, target: 500 }), 'Easy AI never goes blind');
 assert(!aiH.chooseBlindNil(-1, { teamMode: false, myScore: 0, oppScore: 450, target: 500 }), 'No blind nil in cutthroat');
 let blinds = 0;
-for (let i = 0; i < 2000; i++) if (aiH.chooseBlindNil(-1, { teamMode: true, myScore: 0, oppScore: 450, target: 500 })) blinds++;
+for (let i = 0; i < 2000; i++) if (aiH.chooseBlindNil(5, { teamMode: true, myScore: 0, oppScore: 450, target: 500 })) blinds++;
 assert(blinds > 0 && blinds < 400, 'Hard AI sometimes goes blind when far behind: ' + blinds + '/2000');
 let nilWithPartnerNil = 0;
 for (let i = 0; i < 200; i++) if (aiH.chooseBid(weakHand, 0, { teamMode: true }) === 0) nilWithPartnerNil++;

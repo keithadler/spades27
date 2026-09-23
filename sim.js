@@ -72,6 +72,7 @@ const code = `
 
       // Play 13 tricks; left of dealer leads the first
       let leader = (dealer + 1) % 4, broken = false;
+      const played = [];
       for (let t = 0; t < 13; t++) {
         const trick = [];
         for (let k = 0; k < 4; k++) {
@@ -84,7 +85,7 @@ const code = `
             opponentNils: players.filter(q => q !== p && (!teamMode || q.team !== p.team) && q.bid === 0 && q.tricks === 0).map(q => q.index),
             trickPlayers: trick.map(x => x.playerIndex), myIndex: p.index,
             allPlayers: players.map(q => ({ index: q.index, team: q.team, bid: q.bid, tricks: q.tricks })),
-            myTeam: p.team, teamMode,
+            myTeam: p.team, teamMode, played, jokers: rules.jokers,
           };
           const card = p.ai.chooseCard(p.hand, trick.map(x => x.card), lead, broken, ctx);
           if (!card || !legal.some(c => c.equals(card))) { fail('illegal play ' + card + ' lead=' + lead + ' broken=' + broken); }
@@ -93,6 +94,7 @@ const code = `
           if (card.isSpade) broken = true;
           trick.push({ card, playerIndex: p.index });
         }
+        played.push(...trick.map(x => x.card));
         const w = trick[trickWinnerIndex(trick.map(x => x.card))].playerIndex;
         players[w].tricks++; leader = w;
       }

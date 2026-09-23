@@ -296,7 +296,9 @@ class AI {
       const safeSpades = spadeCount <= 3 && spades.every(c => c.value <= (ffa ? 7 : 9));
       const kings = hand.filter(c => c.value === 13).length;
       const fewKings = ffa ? kings === 0 : kings <= 1;
-      const willing = this.difficulty === 'hard' ? 0.65 : 0.35;
+      let willing = this.difficulty === 'hard' ? 0.65 : 0.35;
+      // A partner who bid 1-2 can't cover a Nil; be much more reluctant
+      if (!ffa && partnerBid > 0 && partnerBid < 3) willing *= 0.4;
       if (noAces && safeSpades && fewKings && Math.random() < willing) return 0;
     }
 
@@ -305,14 +307,17 @@ class AI {
 
   /**
    * Blind Nil — decided BEFORE looking at the cards, so it takes no hand.
-   * Only when the team is down 100+ (the table rule), only Medium/Hard, never
-   * alongside a partner's Nil. It's a comeback gamble: +200 / -200, and it
-   * works a bit under half the time, so it gets likelier the worse things
-   * look — way behind, or the opponents about to close the game out.
+   * Only when the team is down 100+ (the table rule), only Medium/Hard, and
+   * only once partner has bid big enough to cover it. It's a comeback gamble
+   * (+200 / -200), so it gets likelier the worse things look — way behind,
+   * or the opponents about to close the game out.
    */
   chooseBlindNil(partnerBid, ctx) {
     if (this.difficulty === 'easy' || !ctx || !ctx.teamMode || ctx.allowBlindNil === false) return false;
-    if (partnerBid === 0) return false;
+    // Blind Nil needs a partner strong enough to cover it: only after
+    // partner has bid 4 or more (measured: without this it was made ~22% of
+    // the time and cost the team ~110 points per try)
+    if (!(partnerBid >= 4)) return false;
     const deficit = ctx.oppScore - ctx.myScore;
     if (deficit < 100) return false;
     let chance = this.difficulty === 'hard' ? 0.02 : 0.01;
@@ -405,11 +410,16 @@ class AI {
         // Slough the highest card that still loses — sheds future liabilities
         return losers.reduce((hi, c) => (c.value > hi.value ? c : hi));
       }
-      // Every card wins (forced) — take it as cheaply as possible
-      return playable.reduce((lo, c) => (c.value < lo.value ? c : lo));
+      // Every card wins (forced). Nil still alive: take it as cheaply as
+      // possible. Nil already busted: unload the biggest winner, so it can't
+      // collect another bag later.
+      return ctx.myTricks > 0
+        ? playable.reduce((hi, c) => (c.value > hi.value ? c : hi))
+        : playable.reduce((lo, c) => (c.value < lo.value ? c : lo));
     }
 
-    const partnerNil = ctx && ctx.teamMode && ctx.partnerBid === 0;
+    // A partner's Nil only needs protecting while it's still alive
+    const partnerNil = ctx && ctx.teamMode && ctx.partnerBid === 0 && ctx.partnerTricks === 0;
 
     // ----- EASY: Not random — plays "badly but legally" -----
     // Follows suit, prefers high cards (wastes winners), doesn't
@@ -428,9 +438,9 @@ class AI {
       }
       // Following: play highest of suit (wastes winners), or random off-suit
       playable.sort((a, b) => b.value - a.value);
-      // Even a beginner won't take a trick their partner has already won:
-      // as the last player, if partner is winning and isn't nil, play a loser.
-      if (ctx && ctx.teamMode && !partnerNil && trick.length === 3 && ctx.trickPlayers && ctx.myIndex !== undefined) {
+      // Even a beginner won't trump or overtake a trick their partner is
+      // winning: if partner is winning and isn't nil, play a loser.
+      if (ctx && ctx.teamMode && !partnerNil && trick.length >= 2 && ctx.trickPlayers && ctx.myIndex !== undefined) {
         const pIdx = ctx.trickPlayers.indexOf((ctx.myIndex + 2) % 4);
         if (pIdx >= 0 && this._isWinning(trick[pIdx], trick, leadSuit)) {
           const losers = playable.filter(c => !this._wouldWin(c, trick, leadSuit));
@@ -467,7 +477,7 @@ class AI {
       iMadeBid = ctx.myBid > 0 && ctx.myTricks >= ctx.myBid;
 
       if (!isFFA) {
-        partnerIsNil = ctx.partnerBid === 0;
+        partnerIsNil = ctx.partnerBid === 0 && ctx.partnerTricks === 0; // busted Nil: nothing left to protect
       }
 
       if (ctx.allPlayers) {
@@ -497,6 +507,32 @@ class AI {
     const nilPartnerSafe = partnerIsNil && partnerPlayed && partnerTrickIdx >= 0 &&
       !this._isWinning(trick[partnerTrickIdx], trick, leadSuit);
     const nilPartnerAtRisk = partnerIsNil && !nilPartnerSafe;
+    // Nil partner still to play in this trick: cover them with the HIGHEST
+    // winner, so whatever they're forced to play stays under it.
+    const nilPartnerToPlay = nilPartnerAtRisk && !partnerPlayed;
+
+    // CARD MEMORY: cards already played this hand (ctx.played) tell us which
+    // of ours are now the highest left in their suit ("boss" cards).
+    const seen = new Set([...(ctx && ctx.played || []), ...trick, ...hand].map(c => c.suit + c.rank));
+    const unseen = createDeck(ctx && ctx.jokers).filter(c => !seen.has(c.suit + c.rank));
+    const isBoss = (c) => !unseen.some(u => u.suit === c.suit && u.value > c.value);
+
+    // SETTING: once the opponents need nearly every trick that's left, a
+    // handful of tricks for us sets them (-10 x their bid). Chase that even
+    // if it costs us bags.
+    let setChase = false;
+    if (!isFFA && ctx && ctx.allPlayers) {
+      const opp = ctx.allPlayers.filter(p => p.team !== ctx.myTeam && p.bid > 0);
+      const oppBid = opp.reduce((s, p) => s + p.bid, 0);
+      const oppNeeds = oppBid - opp.reduce((s, p) => s + p.tricks, 0);
+      setChase = oppBid > 0 && oppNeeds > 0 && (tricksLeft - oppNeeds + 1) <= 4;
+    }
+
+    // Partner is winning this trick with a card nobody left can beat (in
+    // suit): only then is it safe for third seat to play low.
+    const partnerCard = partnerPlayed && partnerTrickIdx >= 0 ? trick[partnerTrickIdx] : null;
+    const partnerWinning = partnerCard && this._isWinning(partnerCard, trick, leadSuit);
+    const partnerSafe = partnerWinning && (isLast || isBoss(partnerCard));
 
     const scored = playable.map(card => {
       let score = 0;
@@ -505,7 +541,7 @@ class AI {
       // Determine if we should be in duck mode:
       // Duck when I've made MY bid OR when the TEAM has made the combined bid
       // EXCEPTION: NEVER duck when partner bid nil — nil protection is #1 priority
-      const shouldDuck = (iMadeBid || teamMadeBid) && !partnerIsNil;
+      const shouldDuck = (iMadeBid || teamMadeBid) && !partnerIsNil && !setChase;
 
       // ===== FACTOR 1: LEADING =====
       if (isLeading) {
@@ -520,12 +556,13 @@ class AI {
           } else {
             score += card.value >= 12 ? 4 : -5;
           }
-        } else if (iNeedTricks && !teamMadeBid) {
-          // Aggressive — lead winners (but not if team already done)
+        } else if ((iNeedTricks && !teamMadeBid) || setChase) {
+          // Aggressive — lead winners (but not if team already done, unless
+          // we're chasing a set)
           if (!card.isSpade) {
             score += card.value * 0.5;
-            if (card.value === 14) score += 8;
-            if (card.value === 13) score += 3;
+            if (isBoss(card)) score += 8;                    // highest left in its suit
+            else if (card.value >= 12) score -= 8;           // K/Q with a higher card still out: don't lead into it
             if (hand.filter(c => c.suit === card.suit).length >= 4) score += 3;
           } else {
             const n = hand.filter(c => c.isSpade).length;
@@ -544,7 +581,9 @@ class AI {
       else if (wouldWin) {
         if (nilPartnerAtRisk && !isFFA) {
           score += 14; // Win to protect nil partner (they haven't played, or they're winning)
-          score -= card.value * 0.2;
+          // Partner still to play: go high so they can duck under. Partner
+          // already under us: the cheapest winner will do.
+          score += nilPartnerToPlay ? card.value * 0.5 : -card.value * 0.2;
         } else if (iNeedTricks && !teamMadeBid) {
           // Team still needs tricks — take it, with the cheapest card that wins.
           // Must outscore the "dump a low loser" option in Factor 3 (max +8),
@@ -581,11 +620,11 @@ class AI {
             // Partner nil and winning — MUST overtake!
             if (wouldWin) score += 20;
             else score -= 5;
-          } else if (!iNeedTricks) {
+          } else if (!iNeedTricks && !setChase) {
             // Partner winning, I don't need tricks — play lowest
             score += (14 - card.value) * 1.2;
-          } else {
-            // Partner winning, I need tricks — still play low (save for later)
+          } else if (partnerSafe) {
+            // Partner's card can't be beaten — save my cards for later
             score += (14 - card.value) * 0.5;
           }
         }
@@ -624,6 +663,14 @@ class AI {
         }
       }
 
+      // ===== FACTOR 4a: THIRD HAND HIGH (Medium + Hard, team only) =====
+      // Partner is winning but an opponent still plays after me and could
+      // beat partner's card: take the trick myself, high enough to hold.
+      if (!isFFA && partnerWinning && !partnerSafe && !isLast && !partnerIsNil && wouldWin &&
+          ((iNeedTricks && !teamMadeBid) || setChase) && !(card.isSpade && leadSuit !== 'spades')) {
+        score += 8 + (isBoss(card) ? 6 : 0);
+      }
+
       // ===== FACTOR 4b: DON'T CUT YOUR PARTNER (Medium + Hard, team only) =====
       // Partner is currently winning this trick (and isn't nil). Taking it
       // away from them wastes a winner and gains the team nothing.
@@ -634,8 +681,8 @@ class AI {
             score -= 40;                                      // Partner has it — never take it
           } else if (card.isSpade && leadSuit !== 'spades') {
             score -= 25;                                      // Never trump partner's winner
-          } else if (pCard.value === 14 || pCard.isSpade || pCard.value >= 12) {
-            score -= 15;                                      // Partner's card is probably good
+          } else if (partnerSafe) {
+            score -= 15;                                      // Partner's card can't be beaten
           } else if (!iNeedTricks) {
             score -= 10;                                      // We don't need it anyway
           }
@@ -651,9 +698,9 @@ class AI {
           // Opponents made bid — force bags
           if (isLeading && card.value >= 12) score += 6;
           if (wouldWin && !teamMadeBid) score += 4;
-        } else if (oppBid > 0 && oppNeeds >= tricksLeft - 1) {
-          // Opponents still need (almost) every remaining trick — one more
-          // trick for us SETS them. Worth far more than a bag. Stop ducking.
+        } else if (setChase) {
+          // Opponents need nearly every remaining trick — a few more for us
+          // SETS them. Worth far more than a bag. Stop ducking.
           if (wouldWin) score += 20;
           if (isLeading && card.value >= 12) score += 8;
         }
