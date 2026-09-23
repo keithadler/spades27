@@ -163,6 +163,9 @@ class Game {
       document.getElementById('log-overlay').classList.add('hidden');
     });
 
+    document.getElementById('last-trick-btn').addEventListener('click', () => this._toggleLastTrick());
+    document.getElementById('last-trick-pop').addEventListener('click', () => this._hideLastTrick());
+
     const nameInput = document.getElementById('player-name-input');
     if (nameInput) {
       nameInput.value = getPlayerName();
@@ -214,6 +217,7 @@ class Game {
       // R = Rules
       if (key === 'r') { document.getElementById('rules-overlay').classList.remove('hidden'); return; }
       // G = Game log
+      if (key === 'l') { this._toggleLastTrick(); return; }
       if (key === 'g') { this._renderLog(); document.getElementById('log-overlay').classList.remove('hidden'); return; }
       // A = Stats & Achievements
       if (key === 'a') { this._renderStats(); document.getElementById('stats-overlay').classList.remove('hidden'); return; }
@@ -438,6 +442,8 @@ class Game {
     this._playLock = false;
     this._lastTrickWinner = -1;
     this._trickCombo = 0;
+    this._lastTrick = null;
+    this._hideLastTrick();
 
     for (const p of this.players) p.resetRound();
 
@@ -619,10 +625,12 @@ class Game {
       }
       html += `</span></div>`;
     }
-    html += `</div><div class="bid-buttons">`;
+    // A suggested bid from the same hand evaluation the Hard AI uses
+    const suggested = Math.max(1, Math.min(13, Math.round(new AI('hard').estimateTricks(player.hand) + ESTIMATE_BIAS)));
+    html += `</div><div class="bid-suggest">${escHTML(this._t('suggested'))}: <b>${suggested}</b></div><div class="bid-buttons">`;
     html += `<button class="bid-btn bid-nil" data-bid="0">${this._t('nil')}</button>`;
     for (let i = 1; i <= 13; i++) {
-      html += `<button class="bid-btn" data-bid="${i}">${i}</button>`;
+      html += `<button class="bid-btn${i === suggested ? ' suggested' : ''}" data-bid="${i}">${i}</button>`;
     }
     html += `</div></div>`;
     overlay.innerHTML = html;
@@ -863,6 +871,8 @@ class Game {
     if (this._trickNum === 1) {
       this._showFirstBlood(winner);
     }
+
+    this._lastTrick = { plays: this.trick.map(t => ({ card: t.card, playerIndex: t.playerIndex })), winner: winner.index };
 
     this.gameLog.push({
       round: this._roundNum, trick: this._trickNum,
@@ -1188,7 +1198,7 @@ class Game {
 
   _renderAllHands() {
     // Dirty check: only rebuild opponent panels if state changed
-    const stateKey = this.players.map(p => `${p.index}:${p.tricks}:${p.bid}:${p.hand.length}:${this.currentPlayer}`).join('|');
+    const stateKey = this.players.map(p => `${p.index}:${p.tricks}:${p.bid}:${p.hand.length}:${this.currentPlayer}`).join('|') + '|d' + this.dealer;
     if (this._lastHandState === stateKey) return;
     this._lastHandState = stateKey;
 
@@ -1207,7 +1217,7 @@ class Game {
         <div class="seat ${this._seatClass(p)}${isTurn ? ' active' : ''}">
           <div class="seat-fan" aria-hidden="true">${p.hand.map((_, k) => `<div class="mini-card" style="--i:${k};--n:${n}">${this._backSVG}</div>`).join('')}</div>
           <div class="seat-plate">
-            <div class="seat-avatar"><img src="${p.avatar}" alt="${escHTML(p.name)}"></div>
+            <div class="seat-avatar"><img src="${p.avatar}" alt="${escHTML(p.name)}">${p.index === this.dealer ? `<span class="dealer-chip" title="${escHTML(this._t('dealerChip'))}">D</span>` : ''}</div>
             <div class="seat-meta">
               <span class="seat-name">${escHTML(p.name)}</span>
               <span class="seat-sub">${rec.wins}W · ${rec.losses}L</span>
@@ -1233,7 +1243,7 @@ class Game {
         infoSection.innerHTML = `
           <div class="seat ${this._seatClass(human)}${this.currentPlayer === 0 && this._trickNum >= 1 ? ' active' : ''}">
             <div class="seat-plate">
-              <div class="seat-avatar"><img class="human-avatar" src="${human.avatar}" alt="${escHTML(human.name)}"></div>
+              <div class="seat-avatar"><img class="human-avatar" src="${human.avatar}" alt="${escHTML(human.name)}">${human.index === this.dealer ? `<span class="dealer-chip" title="${escHTML(this._t('dealerChip'))}">D</span>` : ''}</div>
               <div class="seat-meta">
                 <span class="seat-name" id="human-name-label" style="cursor:pointer;" title="Double-click to edit">${escHTML(human.name)}</span>
                 <span class="seat-sub">${rec.wins}W · ${rec.losses}L</span>
@@ -1337,7 +1347,38 @@ class Game {
     });
   }
 
+  /** Review the previous trick: who played what, and who took it. */
+  _toggleLastTrick() {
+    const pop = document.getElementById('last-trick-pop');
+    if (!pop || !this._lastTrick) return;
+    if (!pop.hidden) { this._hideLastTrick(); return; }
+    const pos = ['bottom', 'left', 'top', 'right'];
+    pop.innerHTML = `<div class="lt-title">${escHTML(this._t('lastTrick'))}</div><div class="lt-grid">` +
+      this._lastTrick.plays.map(pl => {
+        const p = this.players[pl.playerIndex];
+        const won = pl.playerIndex === this._lastTrick.winner;
+        return `<div class="lt-play lt-${pos[pl.playerIndex]}${won ? ' won' : ''}">
+          <div class="lt-card">${cardFaceSVG(pl.card)}</div>
+          <div class="lt-name">${escHTML(p.name)}${won ? ' ✓' : ''}</div>
+        </div>`;
+      }).join('') + `</div>`;
+    pop.hidden = false;
+    clearTimeout(this._lastTrickTimer);
+    this._lastTrickTimer = setTimeout(() => this._hideLastTrick(), 4000);
+  }
+
+  _hideLastTrick() {
+    const pop = document.getElementById('last-trick-pop');
+    if (pop) pop.hidden = true;
+    clearTimeout(this._lastTrickTimer);
+  }
+
   _renderTrickInfo() {
+    const ltBtn = document.getElementById('last-trick-btn');
+    if (ltBtn) {
+      ltBtn.hidden = !this._lastTrick || this.roundOver || this.gameOver;
+      ltBtn.textContent = this._t('lastTrick');
+    }
     const info = document.getElementById('trick-info');
     if (!info) return;
     if (this._trickNum > 0 && this._trickNum <= 13) {

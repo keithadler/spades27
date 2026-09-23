@@ -198,6 +198,24 @@ body::after {
 }
 #trick-info { position: absolute; bottom: calc(var(--ch) * 0.5 + 34px); left: 50%; transform: translateX(-50%); font-size: 0.68rem; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,236,190,0.45); font-weight: 800; z-index: 1; white-space: nowrap; }
 
+/* Dealer button on the seat */
+.dealer-chip { position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.62rem; font-weight: 900; color: #2a1a04; background: radial-gradient(circle at 40% 35%, #fff6d8, #e0b25a 70%); border: 1.5px solid #7a5418; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+
+/* Last-trick review */
+.table-btn { position: absolute; z-index: 5; padding: 6px 14px; border-radius: 999px; cursor: pointer; font-size: 0.68rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); background: rgba(10,9,8,0.7); border: 1px solid rgba(232,193,112,0.35); transition: background 0.2s; }
+.table-btn:hover { background: rgba(232,193,112,0.18); }
+.table-btn[hidden], #last-trick-pop[hidden] { display: none; }
+#last-trick-btn { left: max(96px, 9%); top: 18px; }
+#last-trick-pop { position: absolute; z-index: 9; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 14px 16px 12px; border-radius: 18px; background: linear-gradient(180deg, rgba(30,26,20,0.97), rgba(12,10,8,0.97)); border: 1px solid rgba(232,193,112,0.4); box-shadow: 0 20px 50px rgba(0,0,0,0.6); cursor: pointer; animation: msgEntrance 0.2s ease-out; }
+.lt-title { text-align: center; font-size: 0.6rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+.lt-grid { display: grid; grid-template-columns: repeat(3, auto); grid-template-areas: ". top ." "left . right" ". bottom ."; gap: 2px 10px; align-items: center; justify-items: center; }
+.lt-top { grid-area: top; } .lt-left { grid-area: left; } .lt-right { grid-area: right; } .lt-bottom { grid-area: bottom; }
+.lt-card { width: calc(var(--cw) * 0.7); height: calc(var(--ch) * 0.7); filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5)); }
+.lt-play.won .lt-card { filter: drop-shadow(0 0 10px rgba(255,214,120,0.9)); }
+.lt-name { font-size: 0.66rem; font-weight: 700; color: rgba(255,247,230,0.75); margin-top: 3px; max-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lt-play.won .lt-name { color: var(--gold); }
+@media (max-width: 700px) { #last-trick-btn { left: 16px; top: 8px; } }
+
 /* Cards: the SVG is the card */
 .card-svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .cf-bg { fill: var(--card-face, #fdfcf7); }
@@ -437,6 +455,9 @@ body.colorblind .bid-suit-icon[data-suit="clubs"] { color: #58b56a; }
   box-shadow: 0 4px 0 #0a0806, 0 8px 16px rgba(0,0,0,0.45);
   transition: transform 0.15s var(--ease-spring), box-shadow 0.15s, background 0.15s, color 0.15s;
 }
+.bid-suggest { margin-top: 10px; font-size: 0.72rem; color: rgba(255,236,190,0.6); letter-spacing: 0.5px; }
+.bid-suggest b { color: var(--gold); font-size: 0.9rem; }
+.bid-btn.suggested { border-style: solid; border-color: var(--gold); box-shadow: 0 4px 0 #0a0806, 0 0 0 2px rgba(232,193,112,0.35), 0 0 16px rgba(232,193,112,0.35); }
 .bid-btn:hover { background: radial-gradient(circle at 50% 35%, #f7dc92, #c8973a 70%); color: var(--on-accent); border-color: rgba(90,58,10,0.6); transform: translateY(-3px); box-shadow: 0 7px 0 #6a4812, 0 12px 22px rgba(0,0,0,0.5), 0 0 18px rgba(232,193,112,0.45); }
 .bid-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #0a0806, 0 4px 8px rgba(0,0,0,0.45); }
 .bid-nil { background: radial-gradient(circle at 50% 35%, #6a2a8a, #2c0f3e 70%); border-color: rgba(210,160,255,0.6); color: #f0dcff; font-size: 0.8rem; letter-spacing: 1px; }
@@ -805,6 +826,8 @@ body[data-theme="light"] .roster-card .roster-record { color: var(--lt-muted); o
 body[data-theme="light"] .roster-reroll { background: rgba(255,255,255,0.7); border-color: var(--lt-line); color: var(--lt-ink); }
 
 /* Bidding and results */
+body[data-theme="light"] .bid-suggest { color: var(--lt-muted); }
+body[data-theme="light"] .bid-suggest b { color: var(--lt-gold); }
 body[data-theme="light"] .bid-score-strip, body[data-theme="light"] .bsf-chip { background: rgba(90,64,20,0.06); border-color: var(--lt-line); color: var(--lt-ink); }
 body[data-theme="light"] .bss-blue, body[data-theme="light"] .bsf-chip b { color: var(--lt-gold); }
 body[data-theme="light"] .rr-team { background: rgba(255,255,255,0.6); border-color: var(--lt-line); }
