@@ -296,6 +296,13 @@ let blindOff = 0;
 for (let i = 0; i < 500; i++) if (aiH.chooseBlindNil(-1, { teamMode: true, myScore: 0, oppScore: 450, target: 500, allowBlindNil: false })) blindOff++;
 assert(blindOff === 0, 'AI never goes Blind Nil when it is off');
 
+// Test 16: House rules — losing floor
+console.log('\\n🧱 House Rules: Losing Floor');
+assert(gameOutcome([-200, 100], 500).over, 'Default floor: -200 loses');
+assert(!gameOutcome([-300, 100], 500, -500).over, 'Floor -500: -300 plays on');
+assert(gameOutcome([-510, 100], 500, -500).winner === 1, 'Floor -500: -510 loses');
+assert(!gameOutcome([-900, 100], 500, null).over, 'No floor: play on to the target');
+
 console.log('\\n' + '='.repeat(40));
 console.log('Results: ' + passed + ' passed, ' + failed + ' failed');
 `;

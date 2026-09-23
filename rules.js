@@ -96,14 +96,15 @@ function scoreSoloRound(p, bagCount) {
 /**
  * Is the game over, and who won? Sides are teams (partnership) or players
  * (cutthroat), given as an array of scores.
- * - The game ends when a side reaches the target, or falls to -200.
+ * - The game ends when a side reaches the target, or falls to the losing
+ *   floor (`floor`, default -200; null = no floor).
  * - The highest score wins. If two or more sides reach the target together,
  *   the higher score wins.
  * - A tie for first place is not a finish: play another hand.
  * @returns {{over:boolean, winner:number}} winner is the side index, -1 if not over
  */
-function gameOutcome(scores, target) {
-  const triggered = scores.some(s => s >= target || s <= MERCY_SCORE);
+function gameOutcome(scores, target, floor = MERCY_SCORE) {
+  const triggered = scores.some(s => s >= target || (floor != null && s <= floor));
   if (!triggered) return { over: false, winner: -1 };
   const top = Math.max(...scores);
   const leaders = scores.map((s, i) => (s === top ? i : -1)).filter(i => i >= 0);
@@ -117,8 +118,9 @@ function gameOutcome(scores, target) {
  * - minTeamBid: the "board" — a partnership must bid at least this many
  *   tricks between them (0 = no minimum). Partnership mode only.
  * - jokers: Jokers & Deuces deck (see card.js createDeck)
+ * - floor: a side that falls to this score loses (-200, -500, or null for none)
  */
-const DEFAULT_HOUSE_RULES = { nil: true, blindNil: true, minTeamBid: 0, jokers: false };
+const DEFAULT_HOUSE_RULES = { nil: true, blindNil: true, minTeamBid: 0, jokers: false, floor: MERCY_SCORE };
 
 /**
  * What a player may bid, given the house rules and their partner's bid

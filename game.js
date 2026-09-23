@@ -169,6 +169,7 @@ class Game {
       btn.addEventListener('click', () => {
         const r = getHouseRules(), k = btn.dataset.rule;
         if (k === 'minTeamBid') r.minTeamBid = r.minTeamBid ? 0 : 4;
+        else if (k === 'floor') r.floor = r.floor === -200 ? -500 : r.floor === -500 ? null : -200; // cycle
         else r[k] = !r[k];
         if (k === 'nil' && !r.nil) r.blindNil = false;       // no Blind Nil without Nil
         if (k === 'blindNil' && r.blindNil) r.nil = true;
@@ -581,11 +582,23 @@ class Game {
     }
   }
 
+  /** The difficulty seat `i` will actually play at (the menu can override Mixed). */
+  _resolvedDiff(i) {
+    const ds = this._getOption('ai-difficulty') || 'mixed';
+    return ds === 'easy' || ds === 'hard' ? ds : this._previewDiffs[i];
+  }
+
   _renderHouseRules() {
     const r = getHouseRules();
     const labels = { nil: 'hrNil', blindNil: 'hrBlindNil', minTeamBid: 'hrBoard', jokers: 'hrJokers' };
     document.querySelectorAll('#house-rules .rule-toggle').forEach(btn => {
       const k = btn.dataset.rule;
+      if (k === 'floor') {
+        // Not on/off: shows the current floor, click to cycle
+        btn.classList.add('on');
+        btn.textContent = r.floor == null ? this._t('hrNoFloor') : this._t('hrFloor').replace('{n}', r.floor);
+        return;
+      }
       const on = k === 'minTeamBid' ? !!r.minTeamBid : !!r[k];
       btn.classList.toggle('on', on);
       btn.setAttribute('aria-pressed', on);
@@ -1084,7 +1097,7 @@ class Game {
   // Target reached or a side down to -200, with a clear leader. A tie for
   // first keeps the game going for another hand (rules.js gameOutcome).
   _isGameWon() {
-    return gameOutcome(this._sideScores(), this.targetScore).over;
+    return gameOutcome(this._sideScores(), this.targetScore, this.rules.floor).over;
   }
 
   _endGame() {
@@ -1094,14 +1107,14 @@ class Game {
     let humanWon;
 
     if (this.teamMode) {
-      humanWon = gameOutcome(this._sideScores(), this.targetScore).winner === 0;
+      humanWon = gameOutcome(this._sideScores(), this.targetScore, this.rules.floor).winner === 0;
       for (const p of this.players) {
         if (p.team === (humanWon ? 0 : 1)) recordWin(p.name);
         else recordLoss(p.name);
       }
     } else {
       // Cutthroat: highest score wins
-      const winner = this.players[gameOutcome(this._sideScores(), this.targetScore).winner];
+      const winner = this.players[gameOutcome(this._sideScores(), this.targetScore, this.rules.floor).winner];
       humanWon = winner && winner.isHuman;
       for (const p of this.players) {
         if (p === winner) recordWin(p.name);
@@ -1277,7 +1290,7 @@ class Game {
             <div class="seat-avatar"><img src="${p.avatar}" alt="${escHTML(p.name)}">${p.index === this.dealer ? `<span class="dealer-chip" title="${escHTML(this._t('dealerChip'))}">D</span>` : ''}</div>
             <div class="seat-meta">
               <span class="seat-name">${escHTML(p.name)}</span>
-              <span class="seat-sub">${rec.wins}W · ${rec.losses}L</span>
+              <span class="seat-sub">${p.ai ? escHTML(this._t('ai_' + p.ai.difficulty)) + ' · ' : ''}${rec.wins}W · ${rec.losses}L</span>
             </div>
             ${this._seatBidChip(p)}
           </div>
@@ -1914,9 +1927,9 @@ class Game {
       : ['You', 'Rival', 'Rival', 'Rival'];
     const players = [
       { name: pName, avatar: portraitURL(getHumanPortrait()), isHuman: true, record: getRecord(pName), rank: getRank(pName), team: teamLabels[0] },
-      { name: this._previewNames[0], avatar: portraitURL(this._previewPortraits[0]), record: getRecord(this._previewNames[0]), rank: getRank(this._previewNames[0]), team: teamLabels[1], personality: this._previewPersonalities[0], h2h: getHeadToHead(this._previewNames[0]) },
-      { name: this._previewNames[1], avatar: portraitURL(this._previewPortraits[1]), record: getRecord(this._previewNames[1]), rank: getRank(this._previewNames[1]), team: teamLabels[2], personality: this._previewPersonalities[1], h2h: getHeadToHead(this._previewNames[1]) },
-      { name: this._previewNames[2], avatar: portraitURL(this._previewPortraits[2]), record: getRecord(this._previewNames[2]), rank: getRank(this._previewNames[2]), team: teamLabels[3], personality: this._previewPersonalities[2], h2h: getHeadToHead(this._previewNames[2]) },
+      { name: this._previewNames[0], avatar: portraitURL(this._previewPortraits[0]), record: getRecord(this._previewNames[0]), rank: getRank(this._previewNames[0]), team: teamLabels[1], personality: this._previewPersonalities[0], h2h: getHeadToHead(this._previewNames[0]), diff: this._resolvedDiff(0) },
+      { name: this._previewNames[1], avatar: portraitURL(this._previewPortraits[1]), record: getRecord(this._previewNames[1]), rank: getRank(this._previewNames[1]), team: teamLabels[2], personality: this._previewPersonalities[1], h2h: getHeadToHead(this._previewNames[1]), diff: this._resolvedDiff(1) },
+      { name: this._previewNames[2], avatar: portraitURL(this._previewPortraits[2]), record: getRecord(this._previewNames[2]), rank: getRank(this._previewNames[2]), team: teamLabels[3], personality: this._previewPersonalities[2], h2h: getHeadToHead(this._previewNames[2]), diff: this._resolvedDiff(2) },
     ];
     roster.innerHTML = `<div class="roster-title">${this._t('players')}</div>`;
     players.forEach((p, pi) => {
@@ -1925,7 +1938,8 @@ class Game {
       const role = { Partner: 'partner', Opponent: 'opp', Rival: 'rival' }[p.team];
       const roleTag = role ? `<span class="roster-role ${role}">${escHTML(this._t(role === 'partner' ? 'rolePartner' : role === 'opp' ? 'roleOpponent' : 'roleRival'))}</span>` : '';
       if (role) card.classList.add('role-' + role);
-      card.innerHTML = `<img class="roster-avatar" src="${p.avatar}" alt=""><div class="roster-info"><div class="roster-name">${escHTML(p.name)}</div>${roleTag}<div class="roster-rank">${escHTML(p.rank)}</div><div class="roster-record">${p.record.wins}W - ${p.record.losses}L${p.h2h ? ' · vs you: ' + p.h2h.w + 'W-' + p.h2h.l + 'L' : ''}</div></div>`;
+      const skill = p.diff ? ` · ${escHTML(this._t('ai_' + p.diff))}` : '';
+      card.innerHTML = `<img class="roster-avatar" src="${p.avatar}" alt=""><div class="roster-info"><div class="roster-name">${escHTML(p.name)}</div>${roleTag}<div class="roster-rank">${escHTML(p.rank)}${skill}</div><div class="roster-record">${p.record.wins}W - ${p.record.losses}L${p.h2h ? ' · vs you: ' + p.h2h.w + 'W-' + p.h2h.l + 'L' : ''}</div></div>`;
       if (p.isHuman) {
         // Click your portrait to try the next one; whoever at the table had it
         // gets swapped for someone new, so faces never repeat.

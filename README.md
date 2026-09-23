@@ -20,7 +20,7 @@ python3 -m http.server 8080
 
 ## Features
 
-**Gameplay** — Full Spades rules with 2v2 partnership or cutthroat (FFA) modes, house rules (Nil and Blind Nil on/off, Board of 4, Jokers & Deuces), last-trick review, a suggested bid, bidding with Nil and Blind Nil support, trick-taking with spades as trump, "breaking spades" rule, bag tracking with 10-bag penalty, 3 AI difficulty levels, 5 AI personality types, save/resume games, and keyboard shortcuts.
+**Gameplay** — Full Spades rules with 2v2 partnership or cutthroat (FFA) modes, house rules (Nil and Blind Nil on/off, Board of 4, Jokers & Deuces, losing floor −200/−500/none), last-trick review, a suggested bid, bidding with Nil and Blind Nil support, trick-taking with spades as trump, "breaking spades" rule, bag tracking with 10-bag penalty, 3 AI difficulty levels, 5 AI personality types, save/resume games, and keyboard shortcuts.
 
 **AI** — Heuristic scoring engine with 3 difficulty levels and a memory of every card played this hand. Easy plays like a beginner (leads high, wastes winners) but never trumps a partner's winning card. Medium uses the full heuristics with some variety. Hard plays like a solid club player: third hand high, leads cards that are the highest left in their suit instead of unprotected kings, covers a partner's Nil with its highest winner, goes for the set when the opponents need nearly every trick left, and fights bags once the team bid is made. Blind Nil only when partner has bid big enough to cover it. Each opponent gets a random generation (Gen Z, Millennial, Gen X, Boomer) with culturally authentic Spades trash talk. 5 personalities: Aggressive, Defensive, Chaotic, Calculated, Bully.
 
@@ -101,7 +101,7 @@ Bidding estimates tricks from high spades, spade length, side-suit honours and r
 ├── game.js          — Main game controller with save/resume (~1800 lines)
 ├── game-fx.js       — Visual effects: deal animation, popups, shake, particles
 ├── sw.js            — Service worker for offline play
-├── test.js          — Automated test suite (102 tests)
+├── test.js          — Automated test suite (106 tests)
 ├── sim.js           — Headless simulator: thousands of AI games, rule checks, table stats
 ├── manifest.json    — PWA manifest
 ├── CONTRIBUTING.md  — Contribution guidelines
@@ -123,7 +123,7 @@ Bidding estimates tricks from high spades, spade length, side-suit honours and r
 
 ```bash
 node test.js
-# 102 tests covering: deck, cards, shuffle, sort, player rules,
+# 106 tests covering: deck, cards, shuffle, sort, player rules,
 # nil/blindNil properties, AI bidding, AI play, trick resolution,
 # partnership + cutthroat scoring, bag penalties, game end and ties,
 # Jokers & Deuces, board minimums and Nil switches
@@ -136,6 +136,8 @@ node sim.js 2000 hard teams
 ## Changelog
 
 ### v4.2 — September 2026
+- Losing-floor house rule: −200 (default), −500, or none
+- Each AI's skill level is shown on the menu and at its seat, so a Mixed table tells you what partner you drew
 Fixes from a veteran-player review of the AI, each checked against a scripted hand:
 - The AI remembers every card played this hand, so it knows which of its cards are now the highest left in their suit
 - Third hand high: with partner winning and an opponent still to play, it takes the trick instead of ducking
